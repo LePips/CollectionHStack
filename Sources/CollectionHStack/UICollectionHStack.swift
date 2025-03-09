@@ -33,7 +33,9 @@ public protocol _UICollectionHStack: UIView {
     func scrollTo(index: Int, animated: Bool)
     func snapshotReload()
 
-    func index<T: Hashable>(for element: T) -> Int?
+    /// Returns the index of the given element if its
+    /// `id.hashValue` exists in the current `UICollectionHStack`
+    func index(id: some Hashable) -> Int?
 }
 
 class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
@@ -252,8 +254,8 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         }
     }
 
-    func index(for element: some Hashable) -> Int? {
-        currentElementIDHashes.firstIndex(of: element.hashValue)
+    func index(id: some Hashable) -> Int? {
+        currentElementIDHashes.firstIndex(of: id.hashValue)
     }
 
     /// Computes the size that this view should be based on the effectiveWidth and the total item content height
@@ -363,7 +365,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         allowScrolling: Bool? = nil,
         dataPrefix: Int? = nil
     ) {
-        
+
         if let dataPrefix {
             self.dataPrefix = dataPrefix
         }

@@ -13,8 +13,12 @@ public class CollectionHStackProxy: ObservableObject {
         collectionView?.scrollTo(index: index, animated: animated)
     }
 
-    public func scrollTo(element: some Identifiable, animated: Bool = true) {
-        guard let index = collectionView?.index(for: element.id.hashValue) else { return }
+    /// Scrolls to the element with the given `id.hashValue` if
+    /// it exists in the current `CollectionHStack`.
+    ///
+    /// This `id` must match the `id` used to create the `CollectionHStack`.
+    public func scrollTo(id: some Hashable, animated: Bool = true) {
+        guard let index = collectionView?.index(id: id) else { return }
         scrollTo(index: index, animated: animated)
     }
 
