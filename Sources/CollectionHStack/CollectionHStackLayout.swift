@@ -1,6 +1,6 @@
 import Foundation
 
-enum CollectionHStackLayout {
+public enum CollectionHStackLayout {
 
     case grid(columns: CGFloat, rows: Int, columnTrailingInset: CGFloat)
     case minimumWidth(columnWidth: CGFloat, rows: Int)

@@ -72,6 +72,20 @@ public extension CollectionHStack {
             viewProvider: content
         )
     }
+
+    init(
+        uniqueElements: Data,
+        id: KeyPath<Element, ID>,
+        layout: CollectionHStackLayout,
+        @ViewBuilder content: @escaping (Element) -> any View
+    ) {
+        self.init(
+            id: id,
+            data: uniqueElements,
+            layout: layout,
+            viewProvider: content
+        )
+    }
 }
 
 public extension CollectionHStack where Element: Identifiable, ID == Element.ID {
@@ -133,6 +147,19 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
             id: \.id,
             data: uniqueElements,
             layout: variadicWidths ? .selfSizingVariadicWidth(rows: rows) : .selfSizingSameSize(rows: rows),
+            viewProvider: content
+        )
+    }
+
+    init(
+        uniqueElements: Data,
+        layout: CollectionHStackLayout,
+        @ViewBuilder content: @escaping (Element) -> any View
+    ) {
+        self.init(
+            id: \.id,
+            data: uniqueElements,
+            layout: layout,
             viewProvider: content
         )
     }
@@ -208,6 +235,19 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
             id: \.self,
             data: Array(0 ..< count),
             layout: variadicWidths ? .selfSizingVariadicWidth(rows: rows) : .selfSizingSameSize(rows: rows),
+            viewProvider: content
+        )
+    }
+
+    init(
+        uniqueElements: Data,
+        layout: CollectionHStackLayout,
+        @ViewBuilder content: @escaping (Element) -> any View
+    ) {
+        self.init(
+            id: \.self,
+            data: uniqueElements,
+            layout: layout,
             viewProvider: content
         )
     }
