@@ -3,81 +3,24 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E10B701A2B0E993F0083FCFD /* MusicGenreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10B70192B0E993F0083FCFD /* MusicGenreView.swift */; };
-		E10B701C2B0EADCC0083FCFD /* SquareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10B701B2B0EADCC0083FCFD /* SquareView.swift */; };
-		E10B701F2B0EAEAC0083FCFD /* MusicGenreHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10B701E2B0EAEAC0083FCFD /* MusicGenreHeroCard.swift */; };
-		E10B70212B0EB1DD0083FCFD /* HeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10B70202B0EB1DD0083FCFD /* HeaderView.swift */; };
-		E10B70232B0EB2410083FCFD /* SingleRowHStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10B70222B0EB2410083FCFD /* SingleRowHStack.swift */; };
-		E10B70252B0EB3AA0083FCFD /* TwoRowHStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10B70242B0EB3AA0083FCFD /* TwoRowHStack.swift */; };
-		E10B70272B0EB42A0083FCFD /* SongItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10B70262B0EB42A0083FCFD /* SongItem.swift */; };
-		E10B702A2B0EB4BF0083FCFD /* SongsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10B70292B0EB4BF0083FCFD /* SongsRow.swift */; };
-		E119E00D2B0EB7F8007361BF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E119E00C2B0EB7F8007361BF /* ContentView.swift */; };
-		E119E0102B0ED7C3007361BF /* AppStoreAppsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E119E00F2B0ED7C3007361BF /* AppStoreAppsView.swift */; };
-		E119E0132B0ED861007361BF /* AppStoreHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E119E0122B0ED861007361BF /* AppStoreHeroCard.swift */; };
-		E13FE2A92B0EE003008DBC64 /* SampleApps.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13FE2A82B0EE003008DBC64 /* SampleApps.swift */; };
-		E13FE2AB2B0EE3B9008DBC64 /* ThreeAppRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13FE2AA2B0EE3B9008DBC64 /* ThreeAppRowView.swift */; };
-		E13FE2AD2B0EEA70008DBC64 /* AppItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13FE2AC2B0EEA70008DBC64 /* AppItem.swift */; };
-		E13FE2AF2B0EF07C008DBC64 /* LineDivider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13FE2AE2B0EF07C008DBC64 /* LineDivider.swift */; };
-		E13FE2B22B0EF14D008DBC64 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13FE2B12B0EF14D008DBC64 /* Utilities.swift */; };
-		E15BAE0A2B08ADF00086FC31 /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15BAE092B08ADF00086FC31 /* iOSApp.swift */; };
-		E15BAE0E2B08ADF10086FC31 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E15BAE0D2B08ADF10086FC31 /* Assets.xcassets */; };
-		E168CD682B0B2B7F00937566 /* OnEdgeColorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E168CD672B0B2B7F00937566 /* OnEdgeColorView.swift */; };
-		E186DC192B0EF5AD00336B3D /* AppStoreEventRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E186DC182B0EF5AD00336B3D /* AppStoreEventRow.swift */; };
-		E186DC1B2B0EF85700336B3D /* AppStoreEventRowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E186DC1A2B0EF85700336B3D /* AppStoreEventRowCard.swift */; };
-		E186DC1D2B0EFAB100336B3D /* GetButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E186DC1C2B0EFAB100336B3D /* GetButton.swift */; };
-		E186DC1F2B0EFD6F00336B3D /* AppCategoryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E186DC1E2B0EFD6F00336B3D /* AppCategoryRow.swift */; };
-		E186DC212B0F03F600336B3D /* SampleAlbums.swift in Sources */ = {isa = PBXBuildFile; fileRef = E186DC202B0F03F600336B3D /* SampleAlbums.swift */; };
-		E186DC232B0F153000336B3D /* LayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E186DC222B0F153000336B3D /* LayoutView.swift */; };
-		E186DC262B0F15B600336B3D /* HeaderPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = E186DC252B0F15B600336B3D /* HeaderPopover.swift */; };
-		E1CC82362B0F21AA00FD29C1 /* ScrollBehaviorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CC82352B0F21AA00FD29C1 /* ScrollBehaviorView.swift */; };
-		E1CC82382B0F21F800FD29C1 /* OtherBehaviorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CC82372B0F21F800FD29C1 /* OtherBehaviorView.swift */; };
-		E1D3C3742B09841A00BFA270 /* tvOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1D3C3732B09841A00BFA270 /* tvOSApp.swift */; };
-		E1D3C3762B09841A00BFA270 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1D3C3752B09841A00BFA270 /* ContentView.swift */; };
-		E1D3C3782B09841B00BFA270 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E1D3C3772B09841B00BFA270 /* Assets.xcassets */; };
 		E1D3C39D2B09B19D00BFA270 /* AlwaysPopover in Frameworks */ = {isa = PBXBuildFile; productRef = E1D3C39C2B09B19D00BFA270 /* AlwaysPopover */; };
 		E1DDE97D2B107AA6000D96D7 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1DDE97C2B107AA6000D96D7 /* CollectionHStack */; };
 		E1DDE97F2B107BE2000D96D7 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1DDE97E2B107BE2000D96D7 /* CollectionHStack */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		E10B70192B0E993F0083FCFD /* MusicGenreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGenreView.swift; sourceTree = "<group>"; };
-		E10B701B2B0EADCC0083FCFD /* SquareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SquareView.swift; sourceTree = "<group>"; };
-		E10B701E2B0EAEAC0083FCFD /* MusicGenreHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGenreHeroCard.swift; sourceTree = "<group>"; };
-		E10B70202B0EB1DD0083FCFD /* HeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderView.swift; sourceTree = "<group>"; };
-		E10B70222B0EB2410083FCFD /* SingleRowHStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleRowHStack.swift; sourceTree = "<group>"; };
-		E10B70242B0EB3AA0083FCFD /* TwoRowHStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwoRowHStack.swift; sourceTree = "<group>"; };
-		E10B70262B0EB42A0083FCFD /* SongItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongItem.swift; sourceTree = "<group>"; };
-		E10B70292B0EB4BF0083FCFD /* SongsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongsRow.swift; sourceTree = "<group>"; };
-		E119E00C2B0EB7F8007361BF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		E119E00F2B0ED7C3007361BF /* AppStoreAppsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreAppsView.swift; sourceTree = "<group>"; };
-		E119E0122B0ED861007361BF /* AppStoreHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreHeroCard.swift; sourceTree = "<group>"; };
-		E13FE2A82B0EE003008DBC64 /* SampleApps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleApps.swift; sourceTree = "<group>"; };
-		E13FE2AA2B0EE3B9008DBC64 /* ThreeAppRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreeAppRowView.swift; sourceTree = "<group>"; };
-		E13FE2AC2B0EEA70008DBC64 /* AppItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppItem.swift; sourceTree = "<group>"; };
-		E13FE2AE2B0EF07C008DBC64 /* LineDivider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineDivider.swift; sourceTree = "<group>"; };
-		E13FE2B12B0EF14D008DBC64 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		E15BAE062B08ADF00086FC31 /* iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E15BAE092B08ADF00086FC31 /* iOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSApp.swift; sourceTree = "<group>"; };
-		E15BAE0D2B08ADF10086FC31 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		E168CD672B0B2B7F00937566 /* OnEdgeColorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnEdgeColorView.swift; sourceTree = "<group>"; };
-		E186DC182B0EF5AD00336B3D /* AppStoreEventRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreEventRow.swift; sourceTree = "<group>"; };
-		E186DC1A2B0EF85700336B3D /* AppStoreEventRowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreEventRowCard.swift; sourceTree = "<group>"; };
-		E186DC1C2B0EFAB100336B3D /* GetButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetButton.swift; sourceTree = "<group>"; };
-		E186DC1E2B0EFD6F00336B3D /* AppCategoryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCategoryRow.swift; sourceTree = "<group>"; };
-		E186DC202B0F03F600336B3D /* SampleAlbums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleAlbums.swift; sourceTree = "<group>"; };
-		E186DC222B0F153000336B3D /* LayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutView.swift; sourceTree = "<group>"; };
-		E186DC252B0F15B600336B3D /* HeaderPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderPopover.swift; sourceTree = "<group>"; };
-		E1CC82352B0F21AA00FD29C1 /* ScrollBehaviorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollBehaviorView.swift; sourceTree = "<group>"; };
-		E1CC82372B0F21F800FD29C1 /* OtherBehaviorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OtherBehaviorView.swift; sourceTree = "<group>"; };
 		E1D3C3712B09841A00BFA270 /* tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tvOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E1D3C3732B09841A00BFA270 /* tvOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tvOSApp.swift; sourceTree = "<group>"; };
-		E1D3C3752B09841A00BFA270 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		E1D3C3772B09841B00BFA270 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		E1435B282E14C2D6007377C9 /* iOS */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = iOS; sourceTree = "<group>"; };
+		E1435B482E14C2E5007377C9 /* tvOS */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = tvOS; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		E15BAE032B08ADF00086FC31 /* Frameworks */ = {
@@ -100,68 +43,11 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		E10B701D2B0EAE3F0083FCFD /* MusicGenreView */ = {
-			isa = PBXGroup;
-			children = (
-				E10B70282B0EB4380083FCFD /* Components */,
-				E10B70192B0E993F0083FCFD /* MusicGenreView.swift */,
-				E186DC202B0F03F600336B3D /* SampleAlbums.swift */,
-			);
-			path = MusicGenreView;
-			sourceTree = "<group>";
-		};
-		E10B70282B0EB4380083FCFD /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				E10B70202B0EB1DD0083FCFD /* HeaderView.swift */,
-				E10B701E2B0EAEAC0083FCFD /* MusicGenreHeroCard.swift */,
-				E10B70222B0EB2410083FCFD /* SingleRowHStack.swift */,
-				E10B70262B0EB42A0083FCFD /* SongItem.swift */,
-				E10B70292B0EB4BF0083FCFD /* SongsRow.swift */,
-				E10B701B2B0EADCC0083FCFD /* SquareView.swift */,
-				E10B70242B0EB3AA0083FCFD /* TwoRowHStack.swift */,
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		E119E0112B0ED7C7007361BF /* AppStoreAppsView */ = {
-			isa = PBXGroup;
-			children = (
-				E119E0142B0ED87B007361BF /* Components */,
-				E119E00F2B0ED7C3007361BF /* AppStoreAppsView.swift */,
-				E13FE2A82B0EE003008DBC64 /* SampleApps.swift */,
-			);
-			path = AppStoreAppsView;
-			sourceTree = "<group>";
-		};
-		E119E0142B0ED87B007361BF /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				E186DC1E2B0EFD6F00336B3D /* AppCategoryRow.swift */,
-				E13FE2AC2B0EEA70008DBC64 /* AppItem.swift */,
-				E186DC182B0EF5AD00336B3D /* AppStoreEventRow.swift */,
-				E186DC1A2B0EF85700336B3D /* AppStoreEventRowCard.swift */,
-				E119E0122B0ED861007361BF /* AppStoreHeroCard.swift */,
-				E186DC1C2B0EFAB100336B3D /* GetButton.swift */,
-				E13FE2AA2B0EE3B9008DBC64 /* ThreeAppRowView.swift */,
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		E13FE2B02B0EF093008DBC64 /* SharedComponents */ = {
-			isa = PBXGroup;
-			children = (
-				E186DC252B0F15B600336B3D /* HeaderPopover.swift */,
-				E13FE2AE2B0EF07C008DBC64 /* LineDivider.swift */,
-			);
-			path = SharedComponents;
-			sourceTree = "<group>";
-		};
 		E15BADFD2B08ADF00086FC31 = {
 			isa = PBXGroup;
 			children = (
-				E15BAE082B08ADF00086FC31 /* iOS */,
-				E1D3C3722B09841A00BFA270 /* tvOS */,
+				E1435B282E14C2D6007377C9 /* iOS */,
+				E1435B482E14C2E5007377C9 /* tvOS */,
 				E15BAE072B08ADF00086FC31 /* Products */,
 				E1D3C3822B09844E00BFA270 /* Frameworks */,
 			);
@@ -174,50 +60,6 @@
 				E1D3C3712B09841A00BFA270 /* tvOS.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		E15BAE082B08ADF00086FC31 /* iOS */ = {
-			isa = PBXGroup;
-			children = (
-				E15BAE092B08ADF00086FC31 /* iOSApp.swift */,
-				E119E00C2B0EB7F8007361BF /* ContentView.swift */,
-				E13FE2B12B0EF14D008DBC64 /* Utilities.swift */,
-				E119E0112B0ED7C7007361BF /* AppStoreAppsView */,
-				E186DC242B0F154200336B3D /* Features */,
-				E10B701D2B0EAE3F0083FCFD /* MusicGenreView */,
-				E13FE2B02B0EF093008DBC64 /* SharedComponents */,
-				E15BAE0D2B08ADF10086FC31 /* Assets.xcassets */,
-			);
-			path = iOS;
-			sourceTree = "<group>";
-		};
-		E186DC242B0F154200336B3D /* Features */ = {
-			isa = PBXGroup;
-			children = (
-				E1CC823A2B1064D400FD29C1 /* Components */,
-				E186DC222B0F153000336B3D /* LayoutView.swift */,
-				E1CC82372B0F21F800FD29C1 /* OtherBehaviorView.swift */,
-				E1CC82352B0F21AA00FD29C1 /* ScrollBehaviorView.swift */,
-			);
-			path = Features;
-			sourceTree = "<group>";
-		};
-		E1CC823A2B1064D400FD29C1 /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				E168CD672B0B2B7F00937566 /* OnEdgeColorView.swift */,
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		E1D3C3722B09841A00BFA270 /* tvOS */ = {
-			isa = PBXGroup;
-			children = (
-				E1D3C3732B09841A00BFA270 /* tvOSApp.swift */,
-				E1D3C3752B09841A00BFA270 /* ContentView.swift */,
-				E1D3C3772B09841B00BFA270 /* Assets.xcassets */,
-			);
-			path = tvOS;
 			sourceTree = "<group>";
 		};
 		E1D3C3822B09844E00BFA270 /* Frameworks */ = {
@@ -242,6 +84,9 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				E1435B282E14C2D6007377C9 /* iOS */,
+			);
 			name = iOS;
 			packageProductDependencies = (
 				E1D3C39C2B09B19D00BFA270 /* AlwaysPopover */,
@@ -262,6 +107,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E1435B482E14C2E5007377C9 /* tvOS */,
 			);
 			name = tvOS;
 			packageProductDependencies = (
@@ -317,7 +165,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E15BAE0E2B08ADF10086FC31 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -325,7 +172,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E1D3C3782B09841B00BFA270 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -336,33 +182,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E186DC262B0F15B600336B3D /* HeaderPopover.swift in Sources */,
-				E10B70232B0EB2410083FCFD /* SingleRowHStack.swift in Sources */,
-				E186DC192B0EF5AD00336B3D /* AppStoreEventRow.swift in Sources */,
-				E10B701A2B0E993F0083FCFD /* MusicGenreView.swift in Sources */,
-				E119E00D2B0EB7F8007361BF /* ContentView.swift in Sources */,
-				E186DC1D2B0EFAB100336B3D /* GetButton.swift in Sources */,
-				E13FE2AF2B0EF07C008DBC64 /* LineDivider.swift in Sources */,
-				E10B701C2B0EADCC0083FCFD /* SquareView.swift in Sources */,
-				E10B70252B0EB3AA0083FCFD /* TwoRowHStack.swift in Sources */,
-				E1CC82362B0F21AA00FD29C1 /* ScrollBehaviorView.swift in Sources */,
-				E168CD682B0B2B7F00937566 /* OnEdgeColorView.swift in Sources */,
-				E1CC82382B0F21F800FD29C1 /* OtherBehaviorView.swift in Sources */,
-				E13FE2AD2B0EEA70008DBC64 /* AppItem.swift in Sources */,
-				E186DC1B2B0EF85700336B3D /* AppStoreEventRowCard.swift in Sources */,
-				E119E0102B0ED7C3007361BF /* AppStoreAppsView.swift in Sources */,
-				E15BAE0A2B08ADF00086FC31 /* iOSApp.swift in Sources */,
-				E10B70272B0EB42A0083FCFD /* SongItem.swift in Sources */,
-				E10B701F2B0EAEAC0083FCFD /* MusicGenreHeroCard.swift in Sources */,
-				E13FE2B22B0EF14D008DBC64 /* Utilities.swift in Sources */,
-				E186DC232B0F153000336B3D /* LayoutView.swift in Sources */,
-				E186DC1F2B0EFD6F00336B3D /* AppCategoryRow.swift in Sources */,
-				E186DC212B0F03F600336B3D /* SampleAlbums.swift in Sources */,
-				E119E0132B0ED861007361BF /* AppStoreHeroCard.swift in Sources */,
-				E13FE2AB2B0EE3B9008DBC64 /* ThreeAppRowView.swift in Sources */,
-				E10B702A2B0EB4BF0083FCFD /* SongsRow.swift in Sources */,
-				E13FE2A92B0EE003008DBC64 /* SampleApps.swift in Sources */,
-				E10B70212B0EB1DD0083FCFD /* HeaderView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -370,8 +189,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E1D3C3762B09841A00BFA270 /* ContentView.swift in Sources */,
-				E1D3C3742B09841A00BFA270 /* tvOSApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -514,7 +331,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -545,7 +362,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -567,6 +384,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = TY84JMYEFE;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = CollectionHStack;
@@ -583,7 +401,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 15.0;
+				TVOS_DEPLOYMENT_TARGET = 16.6;
 			};
 			name = Debug;
 		};
@@ -595,6 +413,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = TY84JMYEFE;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = CollectionHStack;
@@ -611,7 +430,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 15.0;
+				TVOS_DEPLOYMENT_TARGET = 16.6;
 			};
 			name = Release;
 		};

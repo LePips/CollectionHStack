@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 
 // TODO: on tvOS, focus updates cause reconstructions of the non-binding init sets
-// TODO: inits with (Element, Index) -> any View
 
 // MARK: - Collection
 
@@ -15,7 +14,7 @@ public extension CollectionHStack {
         columns: Int,
         rows: Int = 1,
         columnTrailingInset: CGFloat = 0,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: id,
@@ -31,7 +30,7 @@ public extension CollectionHStack {
         id: KeyPath<Element, ID>,
         columns: CGFloat,
         rows: Int = 1,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: id,
@@ -47,7 +46,7 @@ public extension CollectionHStack {
         id: KeyPath<Element, ID>,
         minWidth: CGFloat,
         rows: Int = 1,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: id,
@@ -63,7 +62,7 @@ public extension CollectionHStack {
         id: KeyPath<Element, ID>,
         rows: Int = 1,
         variadicWidths: Bool = false,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: id,
@@ -77,7 +76,7 @@ public extension CollectionHStack {
         uniqueElements: Data,
         id: KeyPath<Element, ID>,
         layout: CollectionHStackLayout,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: id,
@@ -96,7 +95,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
         columns: Int,
         rows: Int = 1,
         columnTrailingInset: CGFloat = 0,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.id,
@@ -111,7 +110,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
         uniqueElements: Data,
         columns: CGFloat,
         rows: Int = 1,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.id,
@@ -126,7 +125,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
         uniqueElements: Data,
         minWidth: CGFloat,
         rows: Int = 1,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.id,
@@ -141,7 +140,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
         uniqueElements: Data,
         rows: Int = 1,
         variadicWidths: Bool = false,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.id,
@@ -154,7 +153,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
     init(
         uniqueElements: Data,
         layout: CollectionHStackLayout,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.id,
@@ -175,7 +174,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
         columns: Int,
         rows: Int = 1,
         columnTrailingInset: CGFloat = 0,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.self,
@@ -195,7 +194,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
         columns: CGFloat,
         rows: Int = 1,
         columnTrailingInset: CGFloat = 0,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.self,
@@ -214,7 +213,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
         count: Int,
         minWidth: CGFloat,
         rows: Int = 1,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.self,
@@ -229,7 +228,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
         count: Int,
         rows: Int = 1,
         variadicWidths: Bool = false,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.self,
@@ -242,7 +241,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
     init(
         uniqueElements: Data,
         layout: CollectionHStackLayout,
-        @ViewBuilder content: @escaping (Element) -> any View
+        @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.self,

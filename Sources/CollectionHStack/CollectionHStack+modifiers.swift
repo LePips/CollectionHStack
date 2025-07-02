@@ -6,10 +6,6 @@ public extension CollectionHStack {
         copy(modifying: \.allowBouncing, to: value)
     }
 
-    func allowScrolling(_ value: Bool) -> Self {
-        copy(modifying: \.allowScrolling, to: value)
-    }
-
     func asCarousel() -> Self {
         copy(modifying: \.isCarousel, to: true)
     }
@@ -40,8 +36,8 @@ public extension CollectionHStack {
     }
 
     func onReachedLeadingEdge(offset: CollectionHStackEdgeOffset = .offset(0), perform action: @escaping () -> Void) -> Self {
-        copy(modifying: \.onReachedLeadingSide, to: action)
-            .copy(modifying: \.onReachedLeadingSideOffset, to: offset)
+        copy(modifying: \.onReachedLeadingEdge, to: action)
+            .copy(modifying: \.onReachedLeadingEdgeOffset, to: offset)
     }
 
     func onReachedTrailingEdge(offset: CollectionHStackEdgeOffset = .offset(0), perform action: @escaping () -> Void) -> Self {

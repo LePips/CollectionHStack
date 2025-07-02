@@ -11,22 +11,20 @@ import SwiftUI
 // - placeholder views?
 // - empty view?
 // TODO: fix scroll position on layout change
-// TODO: allow passing height info and widths are calculated instead?
 // TODO: prefetch items rules
 // - cancel?
 // - must be fresh
 // - turn off
 // TODO: continuousLeadingBoundary/item paging behavior every X items?
 //       - would replace fullpaging
-// TODO: on size changing (see iPadOS with navigation sidebar)
-// - fix layout scrolling?
-// - with animation
 // TODO: guard against negative sizes (why happening?)
 //       - not just when elements are zeroed
 // TODO: relayout when items no longer empty
 // TODO: have to properly account for CollectionVGridEdgeOffset.columns when rows > 1
 
 // MARK: UICollectionHStack
+
+private let cellReuseIdentifier = "HostingCollectionViewCell"
 
 public protocol _UICollectionHStack: UIView {
 
@@ -38,7 +36,12 @@ public protocol _UICollectionHStack: UIView {
     func index(id: some Hashable) -> Int?
 }
 
-class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
+public class UICollectionHStack<
+    Element,
+    Data: Collection,
+    ID: Hashable,
+    Content: View
+>:
     UIView,
     _UICollectionHStack,
     UICollectionViewDataSource,
@@ -61,9 +64,8 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
     private let onReachedTrailingEdgeOffset: CollectionHStackEdgeOffset
 
     // internal
-    private var dataPrefix: Int
+    private var dataPrefix: Int?
     private var effectiveItemCount: Int
-    private var effectiveWidth: CGFloat
     private let isCarousel: Bool
     private var data: Data
     private let insets: EdgeInsets
@@ -71,22 +73,32 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
     private var itemSize: CGSize!
     private var layout: CollectionHStackLayout
     private var onReachedEdgeStore: Set<Edge>
-    private var prefetchedViewCache: [Int: UIHostingController<AnyView>]
+    private var prefetchedViewCache: [Int: UIHostingController<Content>]
     private let scrollBehavior: CollectionHStackScrollBehavior
+
     private var size: CGSize {
         didSet {
-            itemSize = itemSize(for: layout)
-            sizeBinding.wrappedValue = size
+            let isAnimating = CATransaction.animationDuration() > 0
+
+            if isAnimating {
+                CATransaction.begin()
+                let context = UICollectionViewFlowLayoutInvalidationContext()
+                context.invalidateFlowLayoutDelegateMetrics = true
+                context.invalidateFlowLayoutAttributes = true
+                collectionView.flowLayout.invalidateLayout(with: context)
+                CATransaction.commit()
+            } else {
+                DispatchQueue.main.async { [weak self] in
+                    self?.collectionView.collectionViewLayout.invalidateLayout()
+                }
+            }
+
             invalidateIntrinsicContentSize()
-            collectionView.collectionViewLayout.prepare()
-            collectionView.collectionViewLayout.invalidateLayout()
         }
     }
 
-    private let sizeBinding: Binding<CGSize>
-
     // view providers
-    private let viewProvider: (Element) -> any View
+    private let viewProvider: (Element) -> Content
 
     // MARK: init
 
@@ -94,7 +106,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         id: KeyPath<Element, ID>,
         clipsToBounds: Bool,
         data: Data,
-        dataPrefix: Int,
+        dataPrefix: Int?,
         didScrollToItems: @escaping ([Element]) -> Void,
         insets: EdgeInsets,
         isCarousel: Bool,
@@ -106,16 +118,13 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         onReachedTrailingEdgeOffset: CollectionHStackEdgeOffset,
         proxy: CollectionHStackProxy,
         scrollBehavior: CollectionHStackScrollBehavior,
-        sizeObserver: SizeObserver,
-        viewProvider: @escaping (Element) -> any View,
-        sizeBinding: Binding<CGSize>
+        viewProvider: @escaping (Element) -> Content
     ) {
         self._id = id
         self.data = data
         self.dataPrefix = dataPrefix
         self.didScrollToItems = didScrollToItems
         self.effectiveItemCount = 0
-        self.effectiveWidth = 0
         self.insets = insets
         self.isCarousel = isCarousel
         self.itemSpacing = itemSpacing
@@ -129,7 +138,6 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         self.scrollBehavior = scrollBehavior
         self.size = .zero
         self.viewProvider = viewProvider
-        self.sizeBinding = sizeBinding
 
         super.init(frame: .zero)
 
@@ -139,14 +147,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
 
         proxy.collectionView = self
 
-        sizeObserver.onSizeChanged = { newSize in
-            self.effectiveWidth = newSize.width
-            self.layoutSubviews()
-        }
-
         collectionView.clipsToBounds = clipsToBounds
-
-        update(newData: data)
     }
 
     @available(*, unavailable)
@@ -154,7 +155,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         fatalError("init(coder:) has not been implemented")
     }
 
-    override var intrinsicContentSize: CGSize {
+    override public var intrinsicContentSize: CGSize {
         size
     }
 
@@ -175,7 +176,10 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
 
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.register(HostingCollectionViewCell.self, forCellWithReuseIdentifier: HostingCollectionViewCell.reuseIdentifier)
+        collectionView.register(
+            HostingCollectionViewCell<Content>.self,
+            forCellWithReuseIdentifier: cellReuseIdentifier
+        )
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.prefetchDataSource = self
@@ -202,22 +206,25 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
 
     // MARK: layoutSubviews
 
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
 
-        let newSize = computeSize()
+        resize()
+    }
 
-        if newSize != size {
-            size = newSize
+    private func resize() {
+        let (newSelfSize, newItemSize) = computeSizes()
+
+        if maxAbsDifference(newSelfSize, size) > 1.0 {
+            size = newSelfSize
+            itemSize = newItemSize
         }
-
-        update(newData: data)
     }
 
     // MARK: proxy
 
     // TODO: should recompute height?
-    func snapshotReload() {
+    public func snapshotReload() {
 
         guard let snapshot = collectionView.snapshotView(afterScreenUpdates: false) else {
             collectionView.reloadData()
@@ -245,7 +252,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
     }
 
     // TODO: other layouts implement their own `scrollTo`
-    func scrollTo(index: Int, animated: Bool) {
+    public func scrollTo(index: Int, animated: Bool) {
         if let flowLayout = collectionView.flowLayout as? ContinuousLeadingEdgeFlowLayout {
             flowLayout.scrollTo(index: index, animated: animated)
         } else {
@@ -254,17 +261,15 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         }
     }
 
-    func index(id: some Hashable) -> Int? {
+    public func index(id: some Hashable) -> Int? {
         currentElementIDHashes.firstIndex(of: id.hashValue)
     }
 
-    /// Computes the size that this view should be based on the effectiveWidth and the total item content height
-    ///
     /// In the event of an invalid layout, warnings are logged and a corrected layout will be applied instead
-    private func computeSize() -> CGSize {
+    func computeSizes() -> (selfSize: CGSize, itemSize: CGSize) {
 
         let _rows: Int
-        let singleItemHeight: CGFloat
+        let singleItemSize: CGSize
 
         switch layout {
         case let .grid(columns, rows, trailingInset):
@@ -272,7 +277,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
             guard rows > 0 else {
                 logger.warning("Given `rows` is less than or equal to 0, setting to single row display instead.")
                 layout = .grid(columns: columns, rows: 1, columnTrailingInset: trailingInset)
-                return computeSize()
+                return computeSizes()
             }
 
             _rows = rows
@@ -280,56 +285,56 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
             guard columns > 0 else {
                 logger.warning("Given `columns` is less than or equal to 0, setting to single column display instead.")
                 layout = .grid(columns: 1, rows: rows, columnTrailingInset: trailingInset)
-                return computeSize()
+                return computeSizes()
             }
 
             let itemWidth = itemSize(for: layout).width
 
-            singleItemHeight = singleItemSize(width: itemWidth).height
+            singleItemSize = self.singleItemSize(width: itemWidth)
 
         case let .minimumWidth(minWidth, rows):
 
             guard minWidth > 0 else {
                 logger.warning("Given `minWidth` is less than or equal to 0, setting to single column display instead.")
                 layout = .grid(columns: 1, rows: rows, columnTrailingInset: 0)
-                return computeSize()
+                return computeSizes()
             }
 
             guard rows > 0 else {
                 logger.warning("Given `rows` is less than or equal to 0, setting to single row display instead.")
                 layout = .minimumWidth(columnWidth: minWidth, rows: 1)
-                return computeSize()
+                return computeSizes()
             }
 
             _rows = rows
 
             let itemWidth = itemSize(for: layout).width
 
-            singleItemHeight = singleItemSize(width: itemWidth).height
+            singleItemSize = self.singleItemSize(width: itemWidth)
 
         case let .selfSizingSameSize(rows):
 
             guard rows > 0 else {
                 logger.warning("Given `rows` is less than or equal to 0, setting to single row display instead.")
                 layout = .selfSizingSameSize(rows: 1)
-                return computeSize()
+                return computeSizes()
             }
 
             _rows = rows
 
-            singleItemHeight = singleItemSize().height
+            singleItemSize = self.singleItemSize()
 
         case let .selfSizingVariadicWidth(rows):
 
             guard rows > 0 else {
                 logger.warning("Given `rows` is less than or equal to 0, setting to single row display instead.")
                 layout = .selfSizingVariadicWidth(rows: 1)
-                return computeSize()
+                return computeSizes()
             }
 
             _rows = rows
 
-            singleItemHeight = singleItemSize().height
+            singleItemSize = self.singleItemSize()
         }
 
         if let alignedLayout = (collectionView.flowLayout as? ColumnAlignedLayout) {
@@ -337,24 +342,37 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         }
 
         let spacing = (_rows - 1) * itemSpacing
-        let height = singleItemHeight * _rows + spacing + insets.bottom + insets.top
+        let height = singleItemSize.height * _rows + spacing + insets.bottom + insets.top
 
-        return CGSize(width: effectiveWidth, height: height)
+        let selfSize = CGSize(
+            width: UIView.noIntrinsicMetric,
+            height: height
+        )
+
+        return (selfSize, singleItemSize)
     }
 
     private func singleItemSize(width: CGFloat? = nil) -> CGSize {
 
         guard !data.isEmpty else { return .init(width: width ?? 0, height: 0) }
 
-        let view: AnyView = if let width, width > 0 {
-            AnyView(viewProvider(data[0]).frame(width: width))
+        let targetSize: CGSize
+        let view: AnyView
+
+        if let width, width > 0 {
+            targetSize = CGSize(
+                width: width,
+                height: UIView.layoutFittingExpandedSize.height
+            )
+            view = AnyView(viewProvider(data[0]).frame(width: width))
         } else {
-            AnyView(viewProvider(data[0]))
+            targetSize = UIView.layoutFittingExpandedSize
+            view = AnyView(viewProvider(data[0]))
         }
 
-        let singleItem = UIHostingController(rootView: view)
-        singleItem.view.sizeToFit()
-        return singleItem.view.bounds.size
+        let hostingController = UIHostingController(rootView: view)
+        hostingController.view.sizeToFit()
+        return hostingController.view.bounds.size
     }
 
     // MARK: update
@@ -363,7 +381,8 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         newData: Data,
         allowBouncing: Bool? = nil,
         allowScrolling: Bool? = nil,
-        dataPrefix: Int? = nil
+        dataPrefix: Int? = nil,
+        layout newLayout: CollectionHStackLayout
     ) {
 
         if let dataPrefix {
@@ -373,7 +392,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         // data
 
         let newIDs = newData
-            .prefixPositive(self.dataPrefix)
+            .prefixPositive(self.dataPrefix ?? 0)
             .map { $0[keyPath: _id] }
             .map(\.hashValue)
 
@@ -401,28 +420,38 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         if let allowScrolling {
             collectionView.isScrollEnabled = allowScrolling
         }
+
+        if newLayout != layout {
+            layout = newLayout
+            resize()
+        }
     }
 
     // MARK: UICollectionViewDataSource
 
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    public func collectionView(
+        _ collectionView: UICollectionView,
+        numberOfItemsInSection section: Int
+    ) -> Int {
         effectiveItemCount
     }
 
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    public func collectionView(
+        _ collectionView: UICollectionView,
+        cellForItemAt indexPath: IndexPath
+    ) -> UICollectionViewCell {
 
         let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: HostingCollectionViewCell.reuseIdentifier,
+            withReuseIdentifier: cellReuseIdentifier,
             for: indexPath
-        ) as! HostingCollectionViewCell
+        ) as! HostingCollectionViewCell<Content>
 
         let item = data[indexPath.row % data.count]
 
-        if let premade = prefetchedViewCache[item[keyPath: _id].hashValue] {
-            cell.setupHostingView(premade: premade)
-            prefetchedViewCache.removeValue(forKey: item[keyPath: _id].hashValue)
+        if let prefetched = prefetchedViewCache[indexPath.row] {
+            cell.setup(hostingController: prefetched)
         } else {
-            cell.setupHostingView(with: viewProvider(item))
+            cell.setup(view: viewProvider(item))
         }
 
         return cell
@@ -431,14 +460,17 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
     // MARK: UICollectionViewDelegate
 
     // required for tvOS
-    func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {
+    public func collectionView(
+        _ collectionView: UICollectionView,
+        canFocusItemAt indexPath: IndexPath
+    ) -> Bool {
         false
     }
 
     // MARK: UICollectionViewDelegateFlowLayout
 
     // TODO: should we protect against size changes?
-    func collectionView(
+    public func collectionView(
         _ collectionView: UICollectionView,
         layout collectionViewLayout: UICollectionViewLayout,
         sizeForItemAt indexPath: IndexPath
@@ -450,11 +482,11 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
 
             let item = data[indexPath.row]
 
-            if let prefetch = prefetchedViewCache[item[keyPath: _id].hashValue] {
-                prefetch.view.sizeToFit()
-                size = prefetch.view.bounds.size
+            if let prefetched = prefetchedViewCache[indexPath.row] {
+                prefetched.view.sizeToFit()
+                size = prefetched.view.bounds.size
             } else {
-                let singleItem = UIHostingController(rootView: AnyView(viewProvider(item)))
+                let singleItem = UIHostingController(rootView: viewProvider(item))
                 singleItem.view.sizeToFit()
                 size = singleItem.view.bounds.size
             }
@@ -475,7 +507,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
 
     // MARK: UIScrollViewDelegate
 
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
 
         // leading edge
         handleReachedLeadingEdge(with: scrollView.contentOffset.x)
@@ -554,7 +586,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
 
     // TODO: should probably be instead when items just became visible / make separate method?
     // TODO: remove items on edges in certain scrollBehaviors + layouts?
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+    public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
 
         let visibleItems = collectionView
             .indexPathsForVisibleItems
@@ -620,7 +652,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
         let itemSpacing = itemSpaces * collectionView.flowLayout.minimumInteritemSpacing
         let totalNegative = sectionInsets + itemSpacing + trailingInset
 
-        return (effectiveWidth - totalNegative) / columns
+        return (bounds.width - totalNegative) / columns
     }
 
     /// - Precondition: minWidth > 0
@@ -630,7 +662,7 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
 
         // Ensure that each item has a given minimum width
         let layout = collectionView.flowLayout
-        var columns = CGFloat(Int((effectiveWidth - layout.sectionInset.horizontal) / minWidth))
+        var columns = CGFloat(Int((bounds.width - layout.sectionInset.horizontal) / minWidth))
 
         guard columns != 1 else { return itemWidth(columns: 1) }
 
@@ -648,22 +680,19 @@ class UICollectionHStack<Element, Data: Collection, ID: Hashable>:
 
     // MARK: UICollectionViewDataSourcePrefetching
 
-    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-
+    public func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
         let fetchedItems = indexPaths.map { data[$0.row % data.count] }
 
-        for item in fetchedItems where !prefetchedViewCache.keys.contains(item[keyPath: _id].hashValue) {
-            let premade = UIHostingController(rootView: AnyView(viewProvider(item)))
-            prefetchedViewCache[item[keyPath: _id].hashValue] = premade
+        for path in indexPaths {
+            let item = data[path.row % data.count]
+            let premade = UIHostingController(rootView: viewProvider(item))
+            prefetchedViewCache[path.row] = premade
         }
     }
 
-    func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
-
-        let fetchedItems = indexPaths.map { data[$0.row % data.count] }
-
-        for item in fetchedItems where !prefetchedViewCache.keys.contains(item[keyPath: _id].hashValue) {
-            prefetchedViewCache.removeValue(forKey: item[keyPath: _id].hashValue)
+    public func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
+        for path in indexPaths {
+            prefetchedViewCache.removeValue(forKey: path.row)
         }
     }
 }

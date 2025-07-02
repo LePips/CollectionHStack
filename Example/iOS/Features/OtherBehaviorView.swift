@@ -135,7 +135,7 @@ struct OtherBehaviorView: View {
                         .aspectRatio(2 / 3, contentMode: .fill)
                         .cornerRadius(5)
                 }
-                .allowScrolling(allowScrolling)
+                .scrollDisabled(!allowScrolling)
 
                 // Clips to bounds
 

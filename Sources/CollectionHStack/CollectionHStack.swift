@@ -10,32 +10,33 @@ private let defaultHorizontalInset: CGFloat = 15
 private let defaultItemSpacing: CGFloat = 10
 #endif
 
-public struct CollectionHStack<Element, Data: Collection, ID: Hashable>: View where Data.Element == Element, Data.Index == Int {
+public struct CollectionHStack<
+    Element,
+    Data: Collection,
+    ID: Hashable,
+    Content: View
+>: UIViewRepresentable where Data.Element == Element, Data.Index == Int {
 
-    @State
-    private var contentSize: CGSize = .zero
+    public typealias UIViewType = UICollectionHStack<Element, Data, ID, Content>
 
-    @StateObject
-    private var sizeObserver = SizeObserver()
-
-    var id: KeyPath<Element, ID>
+    let id: KeyPath<Element, ID>
     var allowBouncing: Bool
     var allowScrolling: Bool
     var clipsToBounds: Bool
     let data: Data
     var dataPrefix: Int?
-    var didScrollToItems: ([Element]) -> Void
+    let didScrollToItems: ([Element]) -> Void
     var insets: EdgeInsets
     var isCarousel: Bool
     var itemSpacing: CGFloat
     let layout: CollectionHStackLayout
-    var onReachedLeadingSide: () -> Void
-    var onReachedLeadingSideOffset: CollectionHStackEdgeOffset
+    var onReachedLeadingEdge: () -> Void
+    var onReachedLeadingEdgeOffset: CollectionHStackEdgeOffset
     var onReachedTrailingEdge: () -> Void
     var onReachedTrailingEdgeOffset: CollectionHStackEdgeOffset
     var proxy: CollectionHStackProxy
     var scrollBehavior: CollectionHStackScrollBehavior
-    let viewProvider: (Element) -> any View
+    let viewProvider: (Element) -> Content
 
     init(
         id: KeyPath<Element, ID>,
@@ -49,13 +50,13 @@ public struct CollectionHStack<Element, Data: Collection, ID: Hashable>: View wh
         isCarousel: Bool = false,
         itemSpacing: CGFloat = defaultItemSpacing,
         layout: CollectionHStackLayout,
-        onReachedLeadingSide: @escaping () -> Void = {},
-        onReachedLeadingSideOffset: CollectionHStackEdgeOffset = .columns(0),
+        onReachedLeadingEdge: @escaping () -> Void = {},
+        onReachedLeadingEdgeOffset: CollectionHStackEdgeOffset = .columns(0),
         onReachedTrailingEdge: @escaping () -> Void = {},
         onReachedTrailingEdgeOffset: CollectionHStackEdgeOffset = .columns(0),
         proxy: CollectionHStackProxy = .init(),
         scrollBehavior: CollectionHStackScrollBehavior = .continuous,
-        viewProvider: @escaping (Element) -> any View
+        viewProvider: @escaping (Element) -> Content
     ) {
         self.id = id
         self.allowBouncing = allowBouncing
@@ -68,8 +69,8 @@ public struct CollectionHStack<Element, Data: Collection, ID: Hashable>: View wh
         self.isCarousel = isCarousel
         self.itemSpacing = itemSpacing
         self.layout = layout
-        self.onReachedLeadingSide = onReachedLeadingSide
-        self.onReachedLeadingSideOffset = onReachedLeadingSideOffset
+        self.onReachedLeadingEdge = onReachedLeadingEdge
+        self.onReachedLeadingEdgeOffset = onReachedLeadingEdgeOffset
         self.onReachedTrailingEdge = onReachedTrailingEdge
         self.onReachedTrailingEdgeOffset = onReachedTrailingEdgeOffset
         self.proxy = proxy
@@ -77,34 +78,34 @@ public struct CollectionHStack<Element, Data: Collection, ID: Hashable>: View wh
         self.viewProvider = viewProvider
     }
 
-    public var body: some View {
-        ZStack {
-            SizeObserverView(sizeObserver: sizeObserver)
-                .frame(height: 1)
+    public func makeUIView(context: Context) -> UIViewType {
+        UICollectionHStack(
+            id: id,
+            clipsToBounds: clipsToBounds,
+            data: data,
+            dataPrefix: dataPrefix,
+            didScrollToItems: didScrollToItems,
+            insets: insets,
+            isCarousel: isCarousel,
+            itemSpacing: itemSpacing,
+            layout: layout,
+            onReachedLeadingEdge: onReachedLeadingEdge,
+            onReachedLeadingEdgeOffset: onReachedLeadingEdgeOffset,
+            onReachedTrailingEdge: onReachedTrailingEdge,
+            onReachedTrailingEdgeOffset: onReachedTrailingEdgeOffset,
+            proxy: proxy,
+            scrollBehavior: scrollBehavior,
+            viewProvider: viewProvider
+        )
+    }
 
-            BridgeView(
-                id: id,
-                allowBouncing: allowBouncing,
-                allowScrolling: allowScrolling,
-                clipsToBounds: clipsToBounds,
-                data: data,
-                dataPrefix: dataPrefix ?? 0,
-                didScrollToItems: didScrollToItems,
-                insets: insets,
-                isCarousel: isCarousel,
-                itemSpacing: itemSpacing,
-                layout: layout,
-                onReachedLeadingEdge: onReachedLeadingSide,
-                onReachedLeadingEdgeOffset: onReachedLeadingSideOffset,
-                onReachedTrailingEdge: onReachedTrailingEdge,
-                onReachedTrailingEdgeOffset: onReachedTrailingEdgeOffset,
-                proxy: proxy,
-                scrollBehavior: scrollBehavior,
-                sizeObserver: sizeObserver,
-                viewProvider: viewProvider,
-                sizeBinding: $contentSize
-            )
-            .frame(height: contentSize.height)
-        }
+    public func updateUIView(_ view: UIViewType, context: Context) {
+        view.update(
+            newData: data,
+            allowBouncing: allowBouncing,
+            allowScrolling: context.environment.isScrollEnabled,
+            dataPrefix: dataPrefix,
+            layout: layout
+        )
     }
 }

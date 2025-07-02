@@ -71,7 +71,7 @@ extension AppStoreAppsView {
                             .padding(.leading, 48)
                     }
                 }
-                .allowScrolling(false)
+                .scrollDisabled(true)
             }
         }
     }

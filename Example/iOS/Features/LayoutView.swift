@@ -74,7 +74,6 @@ struct LayoutView: View {
                                 .aspectRatio(1.77, contentMode: .fill)
                                 .cornerRadius(5)
                         }
-                        .id(minWidth)
                     }
                     .scrollDisabledBackport(true)
                     .frame(height: 150)

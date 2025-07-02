@@ -33,8 +33,8 @@ func % (lhs: CGFloat, rhs: CGFloat) -> CGFloat {
 extension Array {
 
     @inlinable
-    func max(using keyPath: KeyPath<Element, some Comparable>) -> Element? {
-        self.max(by: { $0[keyPath: keyPath] < $1[keyPath: keyPath] })
+    func max(using value: (Element) -> some Comparable) -> Element? {
+        self.max(by: { value($0) < value($1) })
     }
 }
 
@@ -51,15 +51,11 @@ func max(_ lhs: CGSize, _ rhs: CGSize) -> CGSize {
     }
 }
 
-extension CGSize {
+func maxAbsDifference(_ lhs: CGSize, _ rhs: CGSize) -> CGFloat {
+    let widthDiff = abs(lhs.width - rhs.width)
+    let heightDiff = abs(lhs.height - rhs.height)
 
-    var isLandscape: Bool {
-        width > height
-    }
-
-    var isPortrait: Bool {
-        width < height
-    }
+    return max(widthDiff, heightDiff)
 }
 
 // MARK: Collection
@@ -102,25 +98,6 @@ extension Sequence {
 
         return results
     }
-
-    func striding(by step: Int) -> [Element] {
-
-        guard step > 1 else { return Array(self) }
-
-        var results: [Element] = []
-        var iterator = makeIterator()
-        var i = 0
-
-        while let element = iterator.next() {
-            if i % step == 0 {
-                results.append(element)
-            }
-
-            i += 1
-        }
-
-        return results
-    }
 }
 
 // MARK: Int
@@ -149,13 +126,6 @@ extension UIEdgeInsets {
     }
 }
 
-// MARK: PreferenceKey
-
-struct SizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {}
-}
-
 // MARK: View
 
 extension View {
@@ -164,15 +134,5 @@ extension View {
         var copy = self
         copy[keyPath: keyPath] = newValue
         return copy
-    }
-
-    func onSizeChanged(_ onChange: @escaping (CGSize) -> Void) -> some View {
-        background {
-            GeometryReader { reader in
-                Color.clear
-                    .preference(key: SizePreferenceKey.self, value: reader.size)
-            }
-        }
-        .onPreferenceChange(SizePreferenceKey.self, perform: onChange)
     }
 }
