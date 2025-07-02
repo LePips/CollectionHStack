@@ -62,6 +62,8 @@ public class UICollectionHStack<
     private let onReachedLeadingEdgeOffset: CollectionHStackEdgeOffset
     private let onReachedTrailingEdge: () -> Void
     private let onReachedTrailingEdgeOffset: CollectionHStackEdgeOffset
+    private let onPrefetchingElements: ([Element]) -> Void
+    private let onCancelPrefetchingElements: ([Element]) -> Void
 
     // internal
     private var dataPrefix: Int?
@@ -73,7 +75,6 @@ public class UICollectionHStack<
     private var itemSize: CGSize!
     private var layout: CollectionHStackLayout
     private var onReachedEdgeStore: Set<Edge>
-    private var prefetchedViewCache: [Int: UIHostingController<Content>]
     private let scrollBehavior: CollectionHStackScrollBehavior
 
     private var size: CGSize {
@@ -116,6 +117,8 @@ public class UICollectionHStack<
         onReachedLeadingEdgeOffset: CollectionHStackEdgeOffset,
         onReachedTrailingEdge: @escaping () -> Void,
         onReachedTrailingEdgeOffset: CollectionHStackEdgeOffset,
+        onPrefetchingElements: @escaping ([Element]) -> Void,
+        onCancelPrefetchingElements: @escaping ([Element]) -> Void,
         proxy: CollectionHStackProxy,
         scrollBehavior: CollectionHStackScrollBehavior,
         viewProvider: @escaping (Element) -> Content
@@ -133,8 +136,9 @@ public class UICollectionHStack<
         self.onReachedLeadingEdgeOffset = onReachedLeadingEdgeOffset
         self.onReachedTrailingEdge = onReachedTrailingEdge
         self.onReachedTrailingEdgeOffset = onReachedTrailingEdgeOffset
+        self.onPrefetchingElements = onPrefetchingElements
+        self.onCancelPrefetchingElements = onCancelPrefetchingElements
         self.onReachedEdgeStore = []
-        self.prefetchedViewCache = [:]
         self.scrollBehavior = scrollBehavior
         self.size = .zero
         self.viewProvider = viewProvider
@@ -446,13 +450,8 @@ public class UICollectionHStack<
             for: indexPath
         ) as! HostingCollectionViewCell<Content>
 
-        let item = data[indexPath.row % data.count]
-
-        if let prefetched = prefetchedViewCache[indexPath.row] {
-            cell.setup(hostingController: prefetched)
-        } else {
-            cell.setup(view: viewProvider(item))
-        }
+        let element = data[indexPath.row % data.count]
+        cell.setup(view: viewProvider(element))
 
         return cell
     }
@@ -479,17 +478,10 @@ public class UICollectionHStack<
         let size: CGSize
 
         if case CollectionHStackLayout.selfSizingVariadicWidth = layout {
-
-            let item = data[indexPath.row]
-
-            if let prefetched = prefetchedViewCache[indexPath.row] {
-                prefetched.view.sizeToFit()
-                size = prefetched.view.bounds.size
-            } else {
-                let singleItem = UIHostingController(rootView: viewProvider(item))
-                singleItem.view.sizeToFit()
-                size = singleItem.view.bounds.size
-            }
+            let element = data[indexPath.row]
+            let hostingController = UIHostingController(rootView: viewProvider(element))
+            hostingController.view.sizeToFit()
+            size = hostingController.view.bounds.size
         } else {
             if let itemSize {
                 size = itemSize
@@ -681,18 +673,12 @@ public class UICollectionHStack<
     // MARK: UICollectionViewDataSourcePrefetching
 
     public func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-        let fetchedItems = indexPaths.map { data[$0.row % data.count] }
-
-        for path in indexPaths {
-            let item = data[path.row % data.count]
-            let premade = UIHostingController(rootView: viewProvider(item))
-            prefetchedViewCache[path.row] = premade
-        }
+        let prefetchingElements = indexPaths.map { data[$0.row % data.count] }
+        onPrefetchingElements(prefetchingElements)
     }
 
     public func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
-        for path in indexPaths {
-            prefetchedViewCache.removeValue(forKey: path.row)
-        }
+        let cancellingElements = indexPaths.map { data[$0.row % data.count] }
+        onCancelPrefetchingElements(cancellingElements)
     }
 }

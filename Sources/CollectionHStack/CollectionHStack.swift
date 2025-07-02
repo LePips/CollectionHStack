@@ -34,6 +34,8 @@ public struct CollectionHStack<
     var onReachedLeadingEdgeOffset: CollectionHStackEdgeOffset
     var onReachedTrailingEdge: () -> Void
     var onReachedTrailingEdgeOffset: CollectionHStackEdgeOffset
+    var onPrefetchingElements: ([Element]) -> Void
+    var onCancelPrefetchingElements: ([Element]) -> Void
     var proxy: CollectionHStackProxy
     var scrollBehavior: CollectionHStackScrollBehavior
     let viewProvider: (Element) -> Content
@@ -54,6 +56,8 @@ public struct CollectionHStack<
         onReachedLeadingEdgeOffset: CollectionHStackEdgeOffset = .columns(0),
         onReachedTrailingEdge: @escaping () -> Void = {},
         onReachedTrailingEdgeOffset: CollectionHStackEdgeOffset = .columns(0),
+        onPrefetchingElements: @escaping ([Element]) -> Void = { _ in },
+        onCancelPrefetchingElements: @escaping ([Element]) -> Void = { _ in },
         proxy: CollectionHStackProxy = .init(),
         scrollBehavior: CollectionHStackScrollBehavior = .continuous,
         viewProvider: @escaping (Element) -> Content
@@ -73,6 +77,8 @@ public struct CollectionHStack<
         self.onReachedLeadingEdgeOffset = onReachedLeadingEdgeOffset
         self.onReachedTrailingEdge = onReachedTrailingEdge
         self.onReachedTrailingEdgeOffset = onReachedTrailingEdgeOffset
+        self.onPrefetchingElements = onPrefetchingElements
+        self.onCancelPrefetchingElements = onCancelPrefetchingElements
         self.proxy = proxy
         self.scrollBehavior = scrollBehavior
         self.viewProvider = viewProvider
@@ -93,6 +99,8 @@ public struct CollectionHStack<
             onReachedLeadingEdgeOffset: onReachedLeadingEdgeOffset,
             onReachedTrailingEdge: onReachedTrailingEdge,
             onReachedTrailingEdgeOffset: onReachedTrailingEdgeOffset,
+            onPrefetchingElements: onPrefetchingElements,
+            onCancelPrefetchingElements: onCancelPrefetchingElements,
             proxy: proxy,
             scrollBehavior: scrollBehavior,
             viewProvider: viewProvider
