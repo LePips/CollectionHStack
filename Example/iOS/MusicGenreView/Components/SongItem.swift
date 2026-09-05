@@ -1,4 +1,3 @@
-import AlwaysPopover
 import SwiftUI
 
 extension MusicGenreView {
@@ -35,22 +34,9 @@ extension MusicGenreView {
 
                         Spacer()
 
-                        Button {
-                            if Int.random(in: 0 ..< 10) == 0 {
-                                UINotificationFeedbackGenerator()
-                                    .notificationOccurred(.success)
-                                isBooPresented = true
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.body)
-                                .padding()
-                        }
-                        .alwaysPopover(isPresented: $isBooPresented) {
-                            Text("👻 boo")
-                                .padding()
-                        }
-                        .foregroundStyle(.primary)
+                        Image(systemName: "ellipsis")
+                            .font(.body)
+                            .padding()
                     }
                 }
             }

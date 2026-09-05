@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		E1D3C39D2B09B19D00BFA270 /* AlwaysPopover in Frameworks */ = {isa = PBXBuildFile; productRef = E1D3C39C2B09B19D00BFA270 /* AlwaysPopover */; };
 		E1DDE97D2B107AA6000D96D7 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1DDE97C2B107AA6000D96D7 /* CollectionHStack */; };
 		E1DDE97F2B107BE2000D96D7 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1DDE97E2B107BE2000D96D7 /* CollectionHStack */; };
 /* End PBXBuildFile section */
@@ -27,7 +26,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E1D3C39D2B09B19D00BFA270 /* AlwaysPopover in Frameworks */,
 				E1DDE97D2B107AA6000D96D7 /* CollectionHStack in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -89,7 +87,6 @@
 			);
 			name = iOS;
 			packageProductDependencies = (
-				E1D3C39C2B09B19D00BFA270 /* AlwaysPopover */,
 				E1DDE97C2B107AA6000D96D7 /* CollectionHStack */,
 			);
 			productName = CongruentScrollingHStackExample;
@@ -147,7 +144,6 @@
 			);
 			mainGroup = E15BADFD2B08ADF00086FC31;
 			packageReferences = (
-				E1D3C39B2B09B19D00BFA270 /* XCRemoteSwiftPackageReference "AlwaysPopover" */,
 				E1DDE97B2B107AA6000D96D7 /* XCLocalSwiftPackageReference ".." */,
 			);
 			productRefGroup = E15BAE072B08ADF00086FC31 /* Products */;
@@ -247,7 +243,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -304,7 +300,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -331,7 +327,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -362,7 +358,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -473,23 +469,7 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		E1D3C39B2B09B19D00BFA270 /* XCRemoteSwiftPackageReference "AlwaysPopover" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/LePips/AlwaysPopover";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
-		E1D3C39C2B09B19D00BFA270 /* AlwaysPopover */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E1D3C39B2B09B19D00BFA270 /* XCRemoteSwiftPackageReference "AlwaysPopover" */;
-			productName = AlwaysPopover;
-		};
 		E1DDE97C2B107AA6000D96D7 /* CollectionHStack */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CollectionHStack;

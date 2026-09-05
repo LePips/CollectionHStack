@@ -1,4 +1,3 @@
-import AlwaysPopover
 import SwiftUI
 
 struct HeaderPopover: View {
@@ -24,10 +23,11 @@ struct HeaderPopover: View {
             }
         }
         .buttonStyle(.plain)
-        .alwaysPopover(isPresented: $isPopoverPresented) {
+        .popover(isPresented: $isPopoverPresented) {
             Text(description)
                 .padding()
                 .frame(maxWidth: 300)
+                .presentationCompactAdaptation(.popover)
         }
     }
 }

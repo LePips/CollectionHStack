@@ -12,6 +12,9 @@ struct ScrollBehaviorView: View {
     @State
     var columnOption: ColumnOptions = .oneRow
 
+    @State
+    var alignedLeadingElement: Int? = nil
+
     var columnCount: Int {
         if UIDevice.current.userInterfaceIdiom == .pad {
             5
@@ -96,6 +99,7 @@ struct ScrollBehaviorView: View {
                             .cornerRadius(5)
                     }
                     .scrollBehavior(.continuousLeadingEdge)
+                    .alignedLeadingElement(id: $alignedLeadingElement)
                     .id(columnOption)
                 }
 

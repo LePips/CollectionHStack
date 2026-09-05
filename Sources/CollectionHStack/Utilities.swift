@@ -38,26 +38,6 @@ extension Array {
     }
 }
 
-// MARK: CGSize
-
-func max(_ lhs: CGSize, _ rhs: CGSize) -> CGSize {
-    let l = lhs.width * lhs.height
-    let r = rhs.width * rhs.height
-
-    if l > r {
-        return lhs
-    } else {
-        return rhs
-    }
-}
-
-func maxAbsDifference(_ lhs: CGSize, _ rhs: CGSize) -> CGFloat {
-    let widthDiff = abs(lhs.width - rhs.width)
-    let heightDiff = abs(lhs.height - rhs.height)
-
-    return max(widthDiff, heightDiff)
-}
-
 // MARK: Collection
 
 extension Collection {
