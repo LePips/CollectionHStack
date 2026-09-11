@@ -1,6 +1,37 @@
 import DifferenceKit
 import SwiftUI
 
+// MARK: Comparable
+
+extension Comparable {
+
+    @inlinable
+    func clamped(to limits: ClosedRange<Self>) -> Self {
+        Swift.min(limits.upperBound, Swift.max(limits.lowerBound, self))
+    }
+}
+
+// MARK: FloatingPoint
+
+extension BinaryFloatingPoint {
+
+    @inlinable
+    var isFiniteAndPositive: Bool {
+        isFinite && self > 0
+    }
+
+    @inlinable
+    func positiveFinite(or fallback: Self) -> Self {
+        isFiniteAndPositive ? self : fallback
+    }
+}
+
+/// Layout dimensions must be finite and nonnegative; invalid values become zero.
+@inlinable
+func nonnegativeFinite(_ value: CGFloat) -> CGFloat {
+    value.isFinite ? max(value, 0) : 0
+}
+
 // MARK: CGFloat/Int math
 
 @_disfavoredOverload
@@ -42,6 +73,11 @@ extension Array {
 
 extension Collection {
 
+    @inlinable
+    var isNotEmpty: Bool {
+        !isEmpty
+    }
+
     func prefixPositive(_ maxLength: Int) -> Self.SubSequence {
         guard maxLength > 0 else { return self[..<endIndex] }
         return prefix(maxLength)
@@ -62,7 +98,7 @@ extension Sequence {
         var iterator = makeIterator()
 
         while let e = iterator.next() {
-            if i % count == 0, !c.isEmpty {
+            if i % count == 0, c.isNotEmpty {
                 results.append(c)
                 c = []
             }
@@ -72,7 +108,7 @@ extension Sequence {
             i += 1
         }
 
-        if !c.isEmpty {
+        if c.isNotEmpty {
             results.append(c)
         }
 
@@ -82,7 +118,26 @@ extension Sequence {
 
 // MARK: Int
 
-extension Int: ContentEquatable, ContentIdentifiable {}
+struct CollectionItem<Element, ID: Hashable>: Differentiable {
+    let element: Element
+    let id: ID
+    var repetition: Int = 0
+
+    struct Identity: Hashable {
+        let id: ID
+        let repetition: Int
+    }
+
+    var differenceIdentifier: Identity {
+        Identity(id: id, repetition: repetition)
+    }
+
+    func isContentEqual(to source: Self) -> Bool {
+        true
+    }
+}
+
+#if canImport(UIKit)
 
 // MARK: UICollectionView
 
@@ -105,6 +160,8 @@ extension UIEdgeInsets {
         top + bottom
     }
 }
+
+#endif
 
 // MARK: View
 

@@ -7,7 +7,7 @@ import SwiftUI
 
 public extension CollectionHStack {
 
-    // columns
+    /// columns
     init(
         uniqueElements: Data,
         id: KeyPath<Element, ID>,
@@ -24,7 +24,7 @@ public extension CollectionHStack {
         )
     }
 
-    // fractional columns
+    /// fractional columns
     init(
         uniqueElements: Data,
         id: KeyPath<Element, ID>,
@@ -40,7 +40,7 @@ public extension CollectionHStack {
         )
     }
 
-    // minWidth
+    /// minWidth
     init(
         uniqueElements: Data,
         id: KeyPath<Element, ID>,
@@ -56,7 +56,7 @@ public extension CollectionHStack {
         )
     }
 
-    // self/variadic sizing
+    /// self/variadic sizing
     init(
         uniqueElements: Data,
         id: KeyPath<Element, ID>,
@@ -89,7 +89,7 @@ public extension CollectionHStack {
 
 public extension CollectionHStack where Element: Identifiable, ID == Element.ID {
 
-    // columns
+    /// columns
     init(
         uniqueElements: Data,
         columns: Int,
@@ -105,7 +105,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
         )
     }
 
-    // fractional columns
+    /// fractional columns
     init(
         uniqueElements: Data,
         columns: CGFloat,
@@ -120,7 +120,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
         )
     }
 
-    // minWidth
+    /// minWidth
     init(
         uniqueElements: Data,
         minWidth: CGFloat,
@@ -135,7 +135,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
         )
     }
 
-    // self/variadic sizing
+    /// self/variadic sizing
     init(
         uniqueElements: Data,
         rows: Int = 1,
@@ -168,7 +168,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
 
 public extension CollectionHStack where Data == [Element], Element == Int, ID == Int {
 
-    // columns
+    /// columns
     init(
         count: Int,
         columns: Int,
@@ -188,7 +188,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
         )
     }
 
-    // fractional columns
+    /// fractional columns
     init(
         count: Int,
         columns: CGFloat,
@@ -208,7 +208,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
         )
     }
 
-    // minWidth
+    /// minWidth
     init(
         count: Int,
         minWidth: CGFloat,
@@ -223,7 +223,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
         )
     }
 
-    // self/variadic sizing
+    /// self/variadic sizing
     init(
         count: Int,
         rows: Int = 1,

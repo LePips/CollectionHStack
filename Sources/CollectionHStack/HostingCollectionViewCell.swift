@@ -1,37 +1,26 @@
+#if canImport(UIKit)
 import SwiftUI
 
-class HostingCollectionViewCell<Content: View>: UICollectionViewCell {
+final class HostingCollectionViewCell<Content: View>: UICollectionViewCell {
+    private var hostingController: UIHostingController<AnyView>?
 
-    private var currentHostingController: UIHostingController<Content>?
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-
-        currentHostingController?.view.removeFromSuperview()
-        currentHostingController = nil
-    }
-
-    func setup(view: Content) {
-        let hostingController = UIHostingController(rootView: view)
-        setup(hostingController: hostingController)
-    }
-
-    func setup(hostingController: UIHostingController<Content>) {
-
-        self.currentHostingController?.view.removeFromSuperview()
-        self.currentHostingController = nil
-
-        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-        hostingController.view.backgroundColor = nil
-
-        addSubview(hostingController.view)
+    func setup(view: Content, id: AnyHashable? = nil) {
+        let root = AnyView(view.id(id))
+        if let hostingController {
+            hostingController.rootView = root
+            return
+        }
+        let controller = UIHostingController(rootView: root)
+        controller.view.backgroundColor = nil
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(controller.view)
         NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: topAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: bottomAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: trailingAnchor),
+            controller.view.topAnchor.constraint(equalTo: contentView.topAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            controller.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         ])
-
-        currentHostingController = hostingController
+        hostingController = controller
     }
 }
+#endif

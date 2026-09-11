@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E15BAE052B08ADF00086FC31"
-               BuildableName = "iOS.app"
-               BlueprintName = "iOS"
+               BlueprintIdentifier = "E1D3C3702B09841A00BFA270"
+               BuildableName = "tvOS.app"
+               BlueprintName = "tvOS"
                ReferencedContainer = "container:Example.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -43,9 +43,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E15BAE052B08ADF00086FC31"
-            BuildableName = "iOS.app"
-            BlueprintName = "iOS"
+            BlueprintIdentifier = "E1D3C3702B09841A00BFA270"
+            BuildableName = "tvOS.app"
+            BlueprintName = "tvOS"
             ReferencedContainer = "container:Example.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -60,9 +60,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "E15BAE052B08ADF00086FC31"
-            BuildableName = "iOS.app"
-            BlueprintName = "iOS"
+            BlueprintIdentifier = "E1D3C3702B09841A00BFA270"
+            BuildableName = "tvOS.app"
+            BlueprintName = "tvOS"
             ReferencedContainer = "container:Example.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

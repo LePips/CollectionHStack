@@ -15,9 +15,7 @@ public struct CollectionHStack<
     Data: Collection,
     ID: Hashable,
     Content: View
->: UIViewRepresentable where Data.Element == Element, Data.Index == Int {
-
-    public typealias UIViewType = UICollectionHStack<Element, Data, ID, Content>
+> where Data.Element == Element, Data.Index == Int {
 
     let id: KeyPath<Element, ID>
     var alignedLeadingElementID: Binding<ID?>?
@@ -39,7 +37,6 @@ public struct CollectionHStack<
     var onCancelPrefetchingElements: ([Element]) -> Void
     var proxy: CollectionHStackProxy
     var scrollBehavior: CollectionHStackScrollBehavior
-    var traceLog: CollectionHStackTrace
     let viewProvider: (Element) -> Content
 
     init(
@@ -63,7 +60,6 @@ public struct CollectionHStack<
         onCancelPrefetchingElements: @escaping ([Element]) -> Void = { _ in },
         proxy: CollectionHStackProxy = .init(),
         scrollBehavior: CollectionHStackScrollBehavior = .continuous,
-        traceLog: CollectionHStackTrace = .disabled,
         viewProvider: @escaping (Element) -> Content
     ) {
         self.id = id
@@ -86,9 +82,13 @@ public struct CollectionHStack<
         self.onCancelPrefetchingElements = onCancelPrefetchingElements
         self.proxy = proxy
         self.scrollBehavior = scrollBehavior
-        self.traceLog = traceLog
         self.viewProvider = viewProvider
     }
+}
+
+#if canImport(UIKit)
+extension CollectionHStack: UIViewRepresentable {
+    public typealias UIViewType = UICollectionHStack<Element, Data, ID, Content>
 
     public func makeUIView(context: Context) -> UIViewType {
         UICollectionHStack(
@@ -110,12 +110,12 @@ public struct CollectionHStack<
             onCancelPrefetchingElements: onCancelPrefetchingElements,
             proxy: proxy,
             scrollBehavior: scrollBehavior,
-            traceLog: traceLog,
             viewProvider: viewProvider
         )
     }
 
     public func updateUIView(_ view: UIViewType, context: Context) {
+        view.configure(self)
         view.update(
             newData: data,
             alignedLeadingElementID: alignedLeadingElementID,
@@ -123,7 +123,6 @@ public struct CollectionHStack<
             allowScrolling: context.environment.isScrollEnabled,
             dataPrefix: dataPrefix,
             layout: layout,
-            traceLog: traceLog,
             insets: insets,
             itemSpacing: itemSpacing,
             viewProvider: viewProvider
@@ -135,7 +134,8 @@ public struct CollectionHStack<
         uiView: UIViewType,
         context: Context
     ) -> CGSize? {
-        guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
+        guard let width = proposal.width, width.isFiniteAndPositive else { return nil }
         return uiView.fittingSize(forWidth: width)
     }
 }
+#endif

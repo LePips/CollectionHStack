@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 class FullPagingFlowLayout: UICollectionViewFlowLayout {
@@ -72,3 +73,5 @@ class FullPagingFlowLayout: UICollectionViewFlowLayout {
         )
     }
 }
+
+#endif

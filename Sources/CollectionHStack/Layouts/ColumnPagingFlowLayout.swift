@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 class ColumnPagingFlowLayout: UICollectionViewFlowLayout, ColumnAlignedLayout {
@@ -48,3 +49,5 @@ class ColumnPagingFlowLayout: UICollectionViewFlowLayout, ColumnAlignedLayout {
         )
     }
 }
+
+#endif

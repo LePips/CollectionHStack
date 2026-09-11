@@ -1,7 +1,5 @@
+#if canImport(UIKit)
 @testable import CollectionHStack
-#if canImport(Broadcast)
-import Broadcast
-#endif
 import SwiftUI
 import Testing
 
@@ -54,7 +52,7 @@ struct CollectionHStackSizingTests {
         #expect(stack.fittingSize(forWidth: 410).height == 100)
         stack.update(
             newData: [1], alignedLeadingElementID: nil,
-            layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0), traceLog: .disabled
+            layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0)
         )
         #expect(stack.fittingSize(forWidth: 410).height == 50)
         #expect(counter.value == 2)
@@ -105,7 +103,7 @@ struct CollectionHStackSizingTests {
         #expect(counter.value == 0)
         stack.update(
             newData: [0], alignedLeadingElementID: nil,
-            layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0), traceLog: .disabled
+            layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0)
         )
         #expect(stack.computeSizes(forWidth: 210).selfSize.height == 50)
         #expect(stack.computeSizes(forWidth: 410).selfSize.height == 100)
@@ -174,16 +172,9 @@ struct CollectionHStackSizingTests {
 
     @Test
     func swiftUIFittingProposalDoesNotOverwriteLiveUIKitItemSize() throws {
-        #if canImport(Broadcast)
-        let sessionLogger = SessionLogger()
-        let trace = CollectionHStackTrace(log: Log(destinations: [sessionLogger]))
-        #else
-        let trace = CollectionHStackTrace.disabled
-        #endif
         let stack = makeStack(
             counter: MeasurementCounter(),
-            isCarousel: true,
-            traceLog: trace
+            isCarousel: true
         )
         stack.bounds = CGRect(x: 0, y: 0, width: 375, height: 50)
         stack.layoutSubviews()
@@ -213,19 +204,6 @@ struct CollectionHStackSizingTests {
             )
         ).size == liveSizeBeforeProposal)
 
-        #if canImport(Broadcast)
-        let proposalRecord = try #require(
-            sessionLogger.records().last {
-                $0.message == "Resolved collection sizing"
-                    && $0.payload.contains(.string("source", "SwiftUIProposal"))
-            }
-        )
-        #expect(proposalRecord.payload.contains(.bool("appliedToLayout", false)))
-        #expect(proposalRecord.payload.contains(.string("availableWidth", "506.0")))
-        #expect(proposalRecord.payload.contains(.string("boundsWidth", "375.0")))
-        #expect(proposalRecord.payload.contains(.string("flowLayoutItemWidth", "182.5")))
-
-        #endif
         stack.bounds.size.width = 506
         stack.layoutSubviews()
 
@@ -259,76 +237,28 @@ struct CollectionHStackSizingTests {
         #expect(size.selfSize.height == 50)
     }
 
-    #if canImport(Broadcast)
     @Test
-    func invalidRowCountWritesStructuredDiagnostic() throws {
-        let sessionLogger = SessionLogger()
+    func invalidRowCountUsesOneRow() {
         let stack = makeStack(
             counter: MeasurementCounter(),
-            layout: .grid(columns: 2, rows: 0, columnTrailingInset: 0),
-            traceLog: CollectionHStackTrace(log: Log(destinations: [sessionLogger]))
+            layout: .grid(columns: 2, rows: 0, columnTrailingInset: 0)
         )
 
-        _ = stack.computeSizes(forWidth: 210)
+        let size = stack.computeSizes(forWidth: 210)
 
-        let record = try #require(
-            sessionLogger.records().first { $0.message == "Invalid row count; using fallback" }
-        )
-        #expect(record.level == .warn)
-        #expect(record.signal == .diagnostic)
-        #expect(record.category?.identifier == "CollectionHStack Layout")
-        #expect(record.payload == [
-            .int("configuredRows", 0),
-            .int("fallbackRows", 1),
-        ])
+        #expect(size.selfSize.height == 50)
+        #expect(size.itemSize.width == 100)
+        #expect(abs(size.itemSize.height - 50) <= 0.001)
     }
 
     @Test
-    func resolvedSizingWritesStructuredMetric() throws {
-        let sessionLogger = SessionLogger()
-        let stack = makeStack(
-            counter: MeasurementCounter(),
-            traceLog: CollectionHStackTrace(log: Log(destinations: [sessionLogger]))
-        )
-
-        _ = stack.fittingSize(forWidth: 210)
-
-        let record = try #require(
-            sessionLogger.records().first { $0.message == "Resolved collection sizing" }
-        )
-        #expect(record.level == .debug)
-        #expect(record.signal == .metric)
-        #expect(record.category?.identifier == "CollectionHStack Layout")
-        #expect(record.payload.map(\.key) == [
-            "source",
-            "appliedToLayout",
-            "availableWidth",
-            "boundsWidth",
-            "collectionHeight",
-            "itemWidth",
-            "itemHeight",
-            "flowLayoutItemWidth",
-            "flowLayoutItemHeight",
-            "itemCount",
-            "layout",
-        ])
-        #expect(record.payload[0] == .string("source", "SwiftUIProposal"))
-        #expect(record.payload[1] == .bool("appliedToLayout", false))
-    }
-
-    #endif
-
-    @Test
-    func largeCollectionResizePerformance() {
+    func largeCollectionResizeReusesInitialMeasurement() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter, data: Array(0 ..< 10000))
-        let duration = ContinuousClock().measure {
-            for step in 0 ..< 120 {
-                let width = CGFloat(320 + step * 8)
-                _ = stack.fittingSize(forWidth: width)
-            }
+        for step in 0 ..< 120 {
+            let width = CGFloat(320 + step * 8)
+            _ = stack.fittingSize(forWidth: width)
         }
-        print("CollectionHStack: 120 resizes with 10,000 items took \(duration)")
         #expect(counter.value == 1, "Resizing must reuse the initial content measurement")
     }
 
@@ -339,7 +269,6 @@ struct CollectionHStackSizingTests {
         stack.update(
             newData: [0], alignedLeadingElementID: nil,
             layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0),
-            traceLog: .disabled,
             insets: .init(top: 5, leading: 20, bottom: 5, trailing: 30),
             itemSpacing: 20
         )
@@ -360,7 +289,7 @@ struct CollectionHStackSizingTests {
         _ = stack.fittingSize(forWidth: 210)
         stack.update(
             newData: [0], alignedLeadingElementID: nil,
-            layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0), traceLog: .disabled,
+            layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0),
             viewProvider: { _ in MeasuredItem(counter: replacement) }
         )
         stack.snapshotReload()
@@ -373,7 +302,6 @@ struct CollectionHStackSizingTests {
         counter: MeasurementCounter,
         layout: CollectionHStackLayout = .grid(columns: 2, rows: 1, columnTrailingInset: 0),
         isCarousel: Bool = false,
-        traceLog: CollectionHStackTrace = .disabled,
         data: [Int] = [0]
     ) -> UICollectionHStack<Int, [Int], Int, MeasuredItem> {
         UICollectionHStack(
@@ -395,7 +323,6 @@ struct CollectionHStackSizingTests {
             onCancelPrefetchingElements: { _ in },
             proxy: .init(),
             scrollBehavior: .continuous,
-            traceLog: traceLog,
             viewProvider: { _ in MeasuredItem(counter: counter) }
         )
     }
@@ -420,7 +347,6 @@ struct CollectionHStackSizingTests {
             onCancelPrefetchingElements: { _ in },
             proxy: .init(),
             scrollBehavior: .continuous,
-            traceLog: .disabled,
             viewProvider: { _ in AspectRatioItem() }
         )
     }
@@ -448,7 +374,6 @@ struct CollectionHStackSizingTests {
             onCancelPrefetchingElements: { _ in },
             proxy: proxy,
             scrollBehavior: .continuous,
-            traceLog: .disabled,
             viewProvider: { _ in MutableAspectRatioItem(aspectRatio: aspectRatio.value) }
         )
     }
@@ -493,3 +418,5 @@ private struct MutableAspectRatioItem: View {
         Color.blue.aspectRatio(aspectRatio, contentMode: .fill)
     }
 }
+
+#endif

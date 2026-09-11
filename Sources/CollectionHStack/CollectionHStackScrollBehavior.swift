@@ -1,4 +1,6 @@
+#if canImport(UIKit)
 import UIKit
+#endif
 
 // TODO: care for item sizes > collection view width?
 // TODO: care for item spacing which will make no other items appear on targetContentOffset?
@@ -14,6 +16,7 @@ public enum CollectionHStackScrollBehavior {
     case continuousLeadingEdge
     case fullPaging
 
+    #if canImport(UIKit)
     var flowLayout: UICollectionViewFlowLayout {
         switch self {
         case .columnPaging:
@@ -26,14 +29,16 @@ public enum CollectionHStackScrollBehavior {
             FullPagingFlowLayout()
         }
     }
+    #endif
 }
 
+#if canImport(UIKit)
 // TODO: have leading vs centered be variable?
 
 /// A `UICollectionViewFlowLayout` that aligns with a column of items
 protocol ColumnAlignedLayout: UICollectionViewFlowLayout {
 
-    // Used for determining the correct column to align against
+    /// Used for determining the correct column to align against
     var rows: Int { get set }
 }
 
@@ -42,3 +47,5 @@ protocol ColumnStridableLayout: UICollectionViewFlowLayout {
 
     var step: Int { get set }
 }
+
+#endif

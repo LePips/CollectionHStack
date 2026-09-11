@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 /// Similar to `UICollectionLayoutSectionOrthogonalScrollingBehavior.continuousGroupLeadingBoundary`, where scrolling will align
@@ -67,3 +68,5 @@ class ContinuousLeadingEdgeFlowLayout: UICollectionViewFlowLayout, ColumnAligned
         )
     }
 }
+
+#endif

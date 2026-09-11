@@ -1,9 +1,5 @@
 import SwiftUI
 
-#if canImport(Broadcast)
-import Broadcast
-#endif
-
 public extension CollectionHStack {
 
     /// Tracks the ID of the first element in the last column to settle against the leading edge.
@@ -75,21 +71,4 @@ public extension CollectionHStack {
     func scrollBehavior(_ scrollBehavior: CollectionHStackScrollBehavior) -> Self {
         copy(modifying: \.scrollBehavior, to: scrollBehavior)
     }
-
-    /// Enables built-in diagnostics. Disabled by default to avoid retaining logs
-    /// during normal scrolling and resizing.
-    func tracingEnabled(_ enabled: Bool = true) -> Self {
-        copy(modifying: \.traceLog, to: enabled ? .default : .disabled)
-    }
-
-    #if canImport(Broadcast)
-    /// Routes CollectionHStack's structured diagnostics through the supplied Broadcast log.
-    ///
-    /// Tracing is disabled by default. Use ``CollectionHStackDiagnostics/log`` for
-    /// built-in destinations, or inject app-owned destinations to combine these
-    /// records with the rest of the app's diagnostics.
-    func traced(using log: Log) -> Self {
-        copy(modifying: \.traceLog, to: CollectionHStackTrace(log: log))
-    }
-    #endif
 }

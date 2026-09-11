@@ -9,16 +9,19 @@
 /* Begin PBXBuildFile section */
 		E1DDE97D2B107AA6000D96D7 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1DDE97C2B107AA6000D96D7 /* CollectionHStack */; };
 		E1DDE97F2B107BE2000D96D7 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1DDE97E2B107BE2000D96D7 /* CollectionHStack */; };
+		0FD479F944D8A5D5E9527F16 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 9A531FAA2FDAAE9F28A43BB7 /* CollectionHStack */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		E15BAE062B08ADF00086FC31 /* iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1D3C3712B09841A00BFA270 /* tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tvOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DEDDF647A2195080BD7843F /* CollectionHStackExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CollectionHStackExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E1435B282E14C2D6007377C9 /* iOS */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = iOS; sourceTree = "<group>"; };
 		E1435B482E14C2E5007377C9 /* tvOS */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = tvOS; sourceTree = "<group>"; };
+		66A5AF2FCA1BE52AE2F8B26C /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Shared; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -38,12 +41,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C811AA949835649BA7EA79B9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0FD479F944D8A5D5E9527F16 /* CollectionHStack in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		E15BADFD2B08ADF00086FC31 = {
 			isa = PBXGroup;
 			children = (
+				66A5AF2FCA1BE52AE2F8B26C /* Shared */,
 				E1435B282E14C2D6007377C9 /* iOS */,
 				E1435B482E14C2E5007377C9 /* tvOS */,
 				E15BAE072B08ADF00086FC31 /* Products */,
@@ -54,6 +66,7 @@
 		E15BAE072B08ADF00086FC31 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				1DEDDF647A2195080BD7843F /* CollectionHStackExample.app */,
 				E15BAE062B08ADF00086FC31 /* iOS.app */,
 				E1D3C3712B09841A00BFA270 /* tvOS.app */,
 			);
@@ -83,6 +96,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				66A5AF2FCA1BE52AE2F8B26C /* Shared */,
 				E1435B282E14C2D6007377C9 /* iOS */,
 			);
 			name = iOS;
@@ -106,6 +120,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				66A5AF2FCA1BE52AE2F8B26C /* Shared */,
 				E1435B482E14C2E5007377C9 /* tvOS */,
 			);
 			name = tvOS;
@@ -114,6 +129,27 @@
 			);
 			productName = tvOS;
 			productReference = E1D3C3712B09841A00BFA270 /* tvOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F29FA56DDD35E612E2AA4ED4 /* macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 518723AC1C334CBD4A14CA0C /* Build configuration list for PBXNativeTarget "macOS" */;
+			buildPhases = (
+				E76A76C1680F37DB4B31879E /* Sources */,
+				C811AA949835649BA7EA79B9 /* Frameworks */,
+				C90CC70CB3763D6DAB6CAC61 /* Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			fileSystemSynchronizedGroups = (
+				66A5AF2FCA1BE52AE2F8B26C /* Shared */,
+			);
+			name = macOS;
+			packageProductDependencies = (
+				9A531FAA2FDAAE9F28A43BB7 /* CollectionHStack */,
+			);
+			productName = CollectionHStackExample;
+			productReference = 1DEDDF647A2195080BD7843F /* CollectionHStackExample.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -126,6 +162,9 @@
 				LastSwiftUpdateCheck = 1500;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					F29FA56DDD35E612E2AA4ED4 = {
+						CreatedOnToolsVersion = 16.0;
+					};
 					E15BAE052B08ADF00086FC31 = {
 						CreatedOnToolsVersion = 15.0;
 					};
@@ -150,6 +189,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				F29FA56DDD35E612E2AA4ED4 /* macOS */,
 				E15BAE052B08ADF00086FC31 /* iOS */,
 				E1D3C3702B09841A00BFA270 /* tvOS */,
 			);
@@ -171,6 +211,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C90CC70CB3763D6DAB6CAC61 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -182,6 +229,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E1D3C36D2B09841A00BFA270 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E76A76C1680F37DB4B31879E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -397,7 +451,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 16.6;
+				TVOS_DEPLOYMENT_TARGET = 18.0;
 			};
 			name = Debug;
 		};
@@ -426,7 +480,61 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 16.6;
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Release;
+		};
+		96DEC2D3034B81829B74BB3B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CollectionHStack;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.CollectionHStackExample.macOS;
+				PRODUCT_NAME = CollectionHStackExample;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		7B8BD5FEFA9579439EE52685 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CollectionHStack;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.CollectionHStackExample.macOS;
+				PRODUCT_NAME = CollectionHStackExample;
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -460,6 +568,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		518723AC1C334CBD4A14CA0C /* Build configuration list for PBXNativeTarget "macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				96DEC2D3034B81829B74BB3B /* Debug */,
+				7B8BD5FEFA9579439EE52685 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -475,6 +592,10 @@
 			productName = CollectionHStack;
 		};
 		E1DDE97E2B107BE2000D96D7 /* CollectionHStack */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CollectionHStack;
+		};
+		9A531FAA2FDAAE9F28A43BB7 /* CollectionHStack */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CollectionHStack;
 		};
