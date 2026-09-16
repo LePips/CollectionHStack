@@ -222,7 +222,6 @@ public class UICollectionHStack<
     private func evaluateInitialElementIfNeeded() {
         guard !hasEvaluatedInitialElement, let initialElementID, dataIndex.ids.isNotEmpty else { return }
         hasEvaluatedInitialElement = true
-        print(initialElementID)
         pendingInitialElementID = dataIndex[initialElementID] != nil ? initialElementID : nil
         if pendingInitialElementID != nil {
             setNeedsLayout()
