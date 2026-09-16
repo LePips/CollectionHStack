@@ -19,9 +19,14 @@ struct CollectionItem<ID: Hashable>: Differentiable {
     }
 
     @usableFromInline
-    var differenceIdentifier: Identity { Identity(id: id, repetition: repetition) }
+    var differenceIdentifier: Identity {
+        Identity(id: id, repetition: repetition)
+    }
+
     @usableFromInline
-    func isContentEqual(to source: Self) -> Bool { true }
+    func isContentEqual(to source: Self) -> Bool {
+        true
+    }
 }
 
 extension CollectionDataIndex {
@@ -62,7 +67,9 @@ struct CollectionDataTransition<Data: Collection, ID: Hashable> where Data.Index
         guard let offset = indices[id] else {
             preconditionFailure("A staged identity must exist in the current or previous source")
         }
-        if offset >= 0 { return index.element(in: data, at: offset) }
+        if offset >= 0 {
+            return index.element(in: data, at: offset)
+        }
         return previousIndex.element(in: previousData, at: ~offset)
     }
 }

@@ -12,7 +12,8 @@ struct CollectionDataSourceTests {
         let content: String
     }
 
-    @Test func eachDiffStageResolvesLatestSurvivorsAndRemovedSourceElements() {
+    @Test
+    func eachDiffStageResolvesLatestSurvivorsAndRemovedSourceElements() {
         let old = (0 ..< 7).map { Value(id: $0, content: "old") }[2 ..< 6]
         let next = [Value(id: 5, content: "new"), Value(id: 3, content: "new"), Value(id: 7, content: "inserted")][...]
         var previous = CollectionDataIndex<Int>()
@@ -38,7 +39,8 @@ struct CollectionDataSourceTests {
         }
     }
 
-    @Test func repeatedItemsAndGrowthNeedOnlyIdentityMetadata() {
+    @Test
+    func repeatedItemsAndGrowthNeedOnlyIdentityMetadata() {
         var index = CollectionDataIndex<Int>()
         index.update(from: [10, 20, 30][1...], id: \.self, prefix: nil)
         let items = index.items(count: 105)
@@ -55,7 +57,8 @@ struct CollectionDataSourceTests {
         #expect(CollectionDataIndex<Int>().items().isEmpty)
     }
 
-    @Test func transitionReleasesRemovedElementsWhenTheDiffFinishes() {
+    @Test
+    func transitionReleasesRemovedElementsWhenTheDiffFinishes() {
         final class Element { let id = 1 }
         weak var removed: Element?
         var transition: CollectionDataTransition<[Element], Int>?

@@ -56,6 +56,7 @@ public final class NSCollectionHStack<
     private var anchorOffset: CGFloat?
     private var applyingLayout = false
     private var configuration: CollectionHStack<Element, Data, ID, Content>
+    private var hasEvaluatedInitialElement = false
     private var pendingInitialElementID: ID?
     let scrollView = CollectionScrollView()
     let collectionView = CollectionDocumentView()
@@ -128,9 +129,6 @@ public final class NSCollectionHStack<
         }
         scrollView.didScroll = { [weak self] in self?.scheduleSettle(snap: true) }
         update(configuration: configuration, isScrollEnabled: true, dynamicTypeSize: .large)
-        pendingInitialElementID = configuration.initialElementID.flatMap { target in
-            ids.contains(target) ? target : nil
-        }
     }
 
     @available(*, unavailable)
@@ -158,6 +156,12 @@ public final class NSCollectionHStack<
         applyInitialElementIfNeeded()
     }
 
+    private func evaluateInitialElementIfNeeded() {
+        guard !hasEvaluatedInitialElement, let initialElementID = configuration.initialElementID, ids.isNotEmpty else { return }
+        hasEvaluatedInitialElement = true
+        pendingInitialElementID = ids.contains(initialElementID) ? initialElementID : nil
+    }
+
     private func applyInitialElementIfNeeded() {
         guard let target = pendingInitialElementID,
               scrollView.contentSize.width.isFiniteAndPositive,
@@ -174,6 +178,10 @@ public final class NSCollectionHStack<
         isScrollEnabled: Bool,
         dynamicTypeSize: DynamicTypeSize
     ) {
+        if configuration.initialElementID != new.initialElementID {
+            hasEvaluatedInitialElement = false
+            pendingInitialElementID = nil
+        }
         let changedSizing = configuration.layout != new.layout || configuration.insets != new.insets
             || configuration.itemSpacing != new.itemSpacing || self.dynamicTypeSize != dynamicTypeSize
         let changedCarousel = configuration.isCarousel != new.isCarousel
@@ -212,6 +220,7 @@ public final class NSCollectionHStack<
             refreshVisibleItems()
         }
 
+        evaluateInitialElementIfNeeded()
         needsLayout = true
         scheduleSettle(snap: false)
     }

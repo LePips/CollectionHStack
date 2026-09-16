@@ -68,6 +68,8 @@ public class UICollectionHStack<
     private var layout: CollectionHStackLayout
     private var onReachedEdgeStore: Set<Edge>
     private var scrollBehavior: CollectionHStackScrollBehavior
+    private var initialElementID: ID?
+    private var hasEvaluatedInitialElement = false
     private var pendingInitialElementID: ID?
     private var fittingSizeCache: (width: CGFloat, selfSize: CGSize, itemSize: CGSize)?
     private var lastLaidOutWidth: CGFloat?
@@ -122,15 +124,14 @@ public class UICollectionHStack<
         self.onCancelPrefetchingElements = onCancelPrefetchingElements
         self.onReachedEdgeStore = []
         self.scrollBehavior = scrollBehavior
+        self.initialElementID = initialElementID
         self.viewProvider = viewProvider
 
         super.init(frame: .zero)
 
         dataIndex.update(from: data, id: _id, prefix: dataPrefix)
         effectiveItemCount = itemCount(for: dataIndex)
-        pendingInitialElementID = initialElementID.flatMap { target in
-            dataIndex[target] != nil ? target : nil
-        }
+        evaluateInitialElementIfNeeded()
 
         proxy.collectionView = self
 
@@ -216,6 +217,16 @@ public class UICollectionHStack<
         super.layoutSubviews()
         applyInitialElementIfNeeded()
         scheduleAlignedLeadingElementIDUpdate()
+    }
+
+    private func evaluateInitialElementIfNeeded() {
+        guard !hasEvaluatedInitialElement, let initialElementID, dataIndex.ids.isNotEmpty else { return }
+        hasEvaluatedInitialElement = true
+        print(initialElementID)
+        pendingInitialElementID = dataIndex[initialElementID] != nil ? initialElementID : nil
+        if pendingInitialElementID != nil {
+            setNeedsLayout()
+        }
     }
 
     private func applyInitialElementIfNeeded() {
@@ -474,6 +485,11 @@ public class UICollectionHStack<
         onPrefetchingElements = configuration.onPrefetchingElements
         onCancelPrefetchingElements = configuration.onCancelPrefetchingElements
         isCarousel = configuration.isCarousel
+        if initialElementID != configuration.initialElementID {
+            initialElementID = configuration.initialElementID
+            hasEvaluatedInitialElement = false
+            pendingInitialElementID = nil
+        }
         collectionView.clipsToBounds = configuration.clipsToBounds
         configuration.proxy.collectionView = self
         if scrollBehavior != configuration.scrollBehavior {
@@ -570,6 +586,7 @@ public class UICollectionHStack<
             data = newData
             dataIndex = newIndex
         }
+        evaluateInitialElementIfNeeded()
         refreshVisibleItems()
 
         // allowBouncing

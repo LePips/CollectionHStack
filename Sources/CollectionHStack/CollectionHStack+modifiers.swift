@@ -2,13 +2,17 @@ import SwiftUI
 
 public extension CollectionHStack {
 
-    /// Positions the collection at this element on its first layout, without animation.
+    /// Positions the collection at this element whenever the ID changes to a non-nil value, without animation.
     ///
-    /// The ID is evaluated once against the initial data, after applying `dataPrefix`.
-    /// Empty data, a missing ID, or `nil` leaves the collection at its default position;
-    /// later data or ID changes do not retry the request. Positioning uses the same
-    /// alignment as ``CollectionHStackProxy/scrollTo(id:animated:)`` for the configured
-    /// scroll behavior. Recreating the collection view starts a new evaluation.
+    /// A non-nil ID supplied when the view is created also requests positioning.
+    /// Empty data defers evaluation until elements arrive. Each request is evaluated
+    /// once against the current data after applying `dataPrefix`, and positioning
+    /// occurs on the next valid layout. A missing ID leaves the position unchanged;
+    /// data or layout updates alone do not retry the same ID.
+    ///
+    /// Setting the ID to `nil` cancels a pending request. Setting it back to the
+    /// same non-nil ID requests positioning again. Positioning uses the same alignment
+    /// as ``CollectionHStackProxy/scrollTo(id:animated:)`` for the configured scroll behavior.
     func initialElement(id: ID?) -> Self {
         copy(modifying: \.initialElementID, to: id)
     }

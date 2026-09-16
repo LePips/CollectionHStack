@@ -31,16 +31,47 @@ struct InitialElementTests {
         #expect(abs(offset(view) - expected) < 0.5)
     }
 
-    @Test(arguments: [0, 1, 2, 3])
-    func initialMissIsNeverRetried(scenario: Int) {
-        let initial = switch scenario {
-        case 0: configuration(data: []).initialElement(id: 107)
-        case 1: configuration().initialElement(id: 999)
-        case 2: configuration().initialElement(id: 107).dataPrefix(3)
-        default: configuration().initialElement(id: nil)
+    @Test(arguments: 0 ..< 4, [false, true])
+    func waitsForNonEmptyData(behaviorIndex: Int, populateBeforeFirstLayout: Bool) async throws {
+        let behavior: CollectionHStackScrollBehavior = [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging][behaviorIndex]
+        let view = makeView(configuration(data: []).scrollBehavior(behavior).initialElement(id: 107))
+        // Empty updates must not consume the request, including one with no target.
+        update(view, configuration(data: []).scrollBehavior(behavior).initialElement(id: nil))
+        var close: (() -> Void)?
+        defer { close?() }
+        if !populateBeforeFirstLayout {
+            close = present(view)
+            update(view, configuration(data: []).scrollBehavior(behavior).initialElement(id: 107))
+            layout(view, width: 320)
         }
-        let view = makeView(initial)
-        // Even an update before the first valid layout cannot retry the evaluation.
+
+        update(view, configuration().scrollBehavior(behavior).initialElement(id: 115))
+        if populateBeforeFirstLayout {
+            close = present(view)
+        } else {
+            layout(view, width: 320)
+        }
+
+        let frame = try itemFrame(view, index: 15)
+        let expected: CGFloat = switch behavior {
+        case .continuousLeadingEdge, .columnPaging: frame.minX - 20
+        case .continuous, .fullPaging: frame.midX - viewportWidth(view) / 2
+        }
+        #expect(abs(offset(view) - expected) < 0.5)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(abs(offset(view) - expected) < 0.5)
+    }
+
+    @Test(arguments: [false, true], [false, true])
+    func missingTargetIsNotRetriedWithoutIDChange(usePrefix: Bool, startsEmpty: Bool) {
+        let initial = usePrefix
+            ? configuration().initialElement(id: 107).dataPrefix(3)
+            : configuration(data: Array(100 ... 105)).initialElement(id: 107)
+        let view = makeView(startsEmpty ? configuration(data: []).initialElement(id: 107) : initial)
+        if startsEmpty {
+            update(view, initial)
+        }
+        // Data or prefix changes alone do not retry a missing target.
         update(view, configuration().initialElement(id: 107))
         let close = present(view)
         defer { close() }
@@ -48,25 +79,109 @@ struct InitialElementTests {
     }
 
     @Test
-    func updatesRedrawAndResizeDoNotReapplyInitialElement() {
+    func unchangedIDDoesNotReapplyAfterUpdatesRedrawResizeOrRefill() {
         let initial = configuration().initialElement(id: 107)
         let view = makeView(initial)
         let close = present(view)
         defer { close() }
         view.scrollTo(index: 0, animated: false)
-        update(view, configuration().initialElement(id: 115).itemSpacing(12))
+        update(view, configuration().initialElement(id: 107).itemSpacing(12))
         view.snapshotReload()
         layout(view, width: 360)
         #expect(abs(offset(view)) < 0.5)
-        update(view, configuration(data: Array(100 ... 125)).initialElement(id: 115))
+        update(view, configuration(data: Array(100 ... 125)).initialElement(id: 107))
         layout(view, width: 360)
         #expect(abs(offset(view)) < 0.5)
+        update(view, configuration(data: []).initialElement(id: 107))
+        layout(view, width: 360)
+        update(view, configuration().initialElement(id: 107))
+        layout(view, width: 360)
+        #expect(abs(offset(view)) < 0.5)
+    }
+
+    @Test(arguments: 0 ..< 4)
+    func nonNilIDTransitionsReposition(behaviorIndex: Int) async throws {
+        let behavior: CollectionHStackScrollBehavior = [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging][behaviorIndex]
+        let view = makeView(configuration().scrollBehavior(behavior).initialElement(id: nil))
+        let close = present(view)
+        defer { close() }
+
+        // Covers nil -> ID, ID -> different ID, and returning to an earlier ID.
+        for id in [107, 115, 107] {
+            update(view, configuration().scrollBehavior(behavior).initialElement(id: id))
+            // An ID-only update must schedule layout without resizing the view.
+            #if canImport(UIKit)
+            view.layoutIfNeeded()
+            #else
+            view.layoutSubtreeIfNeeded()
+            #endif
+            let frame = try itemFrame(view, index: id - 100)
+            let expected: CGFloat = switch behavior {
+            case .continuousLeadingEdge, .columnPaging: frame.minX - 20
+            case .continuous, .fullPaging: frame.midX - viewportWidth(view) / 2
+            }
+            #expect(abs(offset(view) - expected) < 0.5)
+            try await Task.sleep(for: .milliseconds(200))
+            #expect(abs(offset(view) - expected) < 0.5)
+        }
+    }
+
+    @Test
+    func nilThenSameIDTriggersAnotherEvaluation() throws {
+        let view = makeView(configuration().initialElement(id: 107))
+        let close = present(view)
+        defer { close() }
+        view.scrollTo(index: 0, animated: false)
+
+        update(view, configuration().initialElement(id: nil))
+        layout(view, width: 320)
+        #expect(abs(offset(view)) < 0.5)
+        update(view, configuration().initialElement(id: 107))
+        layout(view, width: 320)
+        #expect(try abs(offset(view) - (itemFrame(view, index: 7).minX - 20)) < 0.5)
+    }
+
+    @Test
+    func changedIDWaitsForNonEmptyData() throws {
+        let view = makeView(configuration().initialElement(id: 107))
+        let close = present(view)
+        defer { close() }
+
+        update(view, configuration(data: []).initialElement(id: 115))
+        layout(view, width: 320)
+        update(view, configuration(data: []).initialElement(id: 115))
+        layout(view, width: 320)
+        update(view, configuration().initialElement(id: 115))
+        layout(view, width: 320)
+        #expect(try abs(offset(view) - (itemFrame(view, index: 15).minX - 20)) < 0.5)
+    }
+
+    @Test
+    func changedIDUsesUpdatedData() throws {
+        let view = makeView(configuration().initialElement(id: 107))
+        let close = present(view)
+        defer { close() }
+
+        update(view, configuration(data: Array(100 ... 140)).initialElement(id: 125))
+        layout(view, width: 320)
+        #expect(try abs(offset(view) - (itemFrame(view, index: 25).minX - 20)) < 0.5)
+    }
+
+    @Test(arguments: [nil, 115, 999] as [Int?])
+    func changedIDReplacesPendingTarget(id: Int?) throws {
+        let view = makeView(configuration().initialElement(id: 107))
+        update(view, configuration().initialElement(id: id))
+        let close = present(view)
+        defer { close() }
+
+        let expected = try id == 115 ? itemFrame(view, index: 15).minX - 20 : 0
+        #expect(abs(offset(view) - expected) < 0.5)
     }
 
     @Test
     func pendingTargetUsesIdentityAfterReordering() throws {
         let view = makeView(configuration().initialElement(id: 107))
-        update(view, configuration(data: [100, 101, 102, 103, 107] + Array(108 ... 120)))
+        update(view, configuration(data: [100, 101, 102, 103, 107] + Array(108 ... 120)).initialElement(id: 107))
         let close = present(view)
         defer { close() }
         #expect(try abs(offset(view) - (itemFrame(view, index: 4).minX - 20)) < 0.5)
@@ -75,7 +190,7 @@ struct InitialElementTests {
     @Test
     func removedPendingTargetDoesNotScrollToItsOldIndex() {
         let view = makeView(configuration().initialElement(id: 107))
-        update(view, configuration(data: Array(110 ... 130)))
+        update(view, configuration(data: Array(110 ... 130)).initialElement(id: 107))
         let close = present(view)
         defer { close() }
         #expect(abs(offset(view)) < 0.5)

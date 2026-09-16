@@ -127,7 +127,7 @@ struct CollectionDataIndexTests {
     }
 
     @Test
-    func irregularIndicesRemainIndependentAcrossUpdates() throws {
+    func irregularIndicesRemainIndependentAcrossUpdates() {
         struct IrregularCollection: Collection {
             let positions: [Int]
             let values: [Int]
