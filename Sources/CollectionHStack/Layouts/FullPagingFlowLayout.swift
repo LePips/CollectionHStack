@@ -7,6 +7,17 @@ class FullPagingFlowLayout: UICollectionViewFlowLayout {
     private var isAtLast: Bool = false
     private var pageIndex: Int = 0
 
+    /// Seeds paging after the collection is initially positioned away from page zero.
+    func synchronizePageWithContentOffset() {
+        guard let collectionView else { return }
+        let pageSize = collectionView.bounds.width - sectionInset.left * 2 + minimumInteritemSpacing
+        guard pageSize.isFiniteAndPositive else { return }
+        let maximum = max(0, collectionView.contentSize.width - collectionView.bounds.width)
+        let offset = collectionView.contentOffset.x.clamped(to: 0 ... maximum)
+        isAtLast = maximum > 0 && offset >= maximum
+        pageIndex = Int(isAtLast ? ceil(maximum / pageSize) : (offset / pageSize).rounded())
+    }
+
     override func targetContentOffset(
         forProposedContentOffset proposedContentOffset: CGPoint,
         withScrollingVelocity velocity: CGPoint

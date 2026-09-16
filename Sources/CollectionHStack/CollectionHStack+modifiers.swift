@@ -2,6 +2,17 @@ import SwiftUI
 
 public extension CollectionHStack {
 
+    /// Positions the collection at this element on its first layout, without animation.
+    ///
+    /// The ID is evaluated once against the initial data, after applying `dataPrefix`.
+    /// Empty data, a missing ID, or `nil` leaves the collection at its default position;
+    /// later data or ID changes do not retry the request. Positioning uses the same
+    /// alignment as ``CollectionHStackProxy/scrollTo(id:animated:)`` for the configured
+    /// scroll behavior. Recreating the collection view starts a new evaluation.
+    func initialElement(id: ID?) -> Self {
+        copy(modifying: \.initialElementID, to: id)
+    }
+
     /// Tracks the ID of the first element in the last column to settle against the leading edge.
     ///
     /// The binding retains its last settled ID while scrolling. Tracking is available

@@ -36,7 +36,10 @@ public class UICollectionHStack<
 {
 
     private var _id: KeyPath<Element, ID>
-    private var items: [CollectionItem<Element, ID>] = []
+    private var dataIndex = CollectionDataIndex<ID>()
+    // DifferenceKit needs materialized identities only while applying structural changes.
+    private var stagedItems: [CollectionItem<ID>]?
+    private var dataTransition: CollectionDataTransition<Data, ID>?
 
     // binding
     private var alignedLeadingElementID: Binding<ID?>?
@@ -65,6 +68,7 @@ public class UICollectionHStack<
     private var layout: CollectionHStackLayout
     private var onReachedEdgeStore: Set<Edge>
     private var scrollBehavior: CollectionHStackScrollBehavior
+    private var pendingInitialElementID: ID?
     private var fittingSizeCache: (width: CGFloat, selfSize: CGSize, itemSize: CGSize)?
     private var lastLaidOutWidth: CGFloat?
     private var layoutInvalidationGeneration = 0
@@ -97,6 +101,7 @@ public class UICollectionHStack<
         onCancelPrefetchingElements: @escaping ([Element]) -> Void,
         proxy: CollectionHStackProxy,
         scrollBehavior: CollectionHStackScrollBehavior,
+        initialElementID: ID? = nil,
         viewProvider: @escaping (Element) -> Content
     ) {
         self._id = id
@@ -121,8 +126,11 @@ public class UICollectionHStack<
 
         super.init(frame: .zero)
 
-        items = makeItems(from: data)
-        effectiveItemCount = items.count
+        dataIndex.update(from: data, id: _id, prefix: dataPrefix)
+        effectiveItemCount = itemCount(for: dataIndex)
+        pendingInitialElementID = initialElementID.flatMap { target in
+            dataIndex[target] != nil ? target : nil
+        }
 
         proxy.collectionView = self
 
@@ -206,7 +214,22 @@ public class UICollectionHStack<
         // shrinking a window briefly lays out the old, taller items in the new height.
         updateSizes(forWidth: bounds.width)
         super.layoutSubviews()
+        applyInitialElementIfNeeded()
         scheduleAlignedLeadingElementIDUpdate()
+    }
+
+    private func applyInitialElementIfNeeded() {
+        guard let target = pendingInitialElementID,
+              collectionView.bounds.width.isFiniteAndPositive,
+              collectionView.bounds.height.isFiniteAndPositive else { return }
+
+        // Consume before scrolling, which can synchronously trigger another layout.
+        pendingInitialElementID = nil
+        guard let index = index(id: target) else { return }
+        UIView.performWithoutAnimation {
+            scrollTo(index: index, animated: false)
+            (collectionView.flowLayout as? FullPagingFlowLayout)?.synchronizePageWithContentOffset()
+        }
     }
 
     override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -343,7 +366,7 @@ public class UICollectionHStack<
 
     public func scrollTo(index: Int, animated: Bool) {
 
-        guard items.indices.contains(index) else { return }
+        guard (0 ..< effectiveItemCount).contains(index) else { return }
         collectionView.layoutIfNeeded()
         if collectionView.flowLayout is ColumnAlignedLayout,
            let attributes = collectionView.collectionViewLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0))
@@ -362,7 +385,10 @@ public class UICollectionHStack<
     }
 
     public func index(id: some Hashable) -> Int? {
-        items.firstIndex { AnyHashable($0.id) == AnyHashable(id) }
+        if let stagedItems {
+            return stagedItems.firstIndex { AnyHashable($0.id) == AnyHashable(id) }
+        }
+        return dataIndex.ids.firstIndex { AnyHashable($0) == AnyHashable(id) }
     }
 
     /// Computes a stable item size from the supplied width rather than reading `bounds`
@@ -420,18 +446,23 @@ public class UICollectionHStack<
         return CGSize(width: nonnegativeFinite(measurement.size.width), height: nonnegativeFinite(measurement.size.height))
     }
 
-    private func makeItems(from data: Data, carouselCount: Int? = nil) -> [CollectionItem<Element, ID>] {
-        let elements = Array(data.prefixPositive(dataPrefix ?? 0))
-        precondition(
-            Set(elements.map { $0[keyPath: _id] }).count == elements.count,
-            "CollectionHStack requires unique element IDs"
-        )
-        guard elements.isNotEmpty else { return [] }
-        let count = isCarousel ? max(max(carouselCount ?? 100, 100), elements.count) : elements.count
-        return (0 ..< count).map { index in
-            let element = elements[index % elements.count]
-            return CollectionItem(element: element, id: element[keyPath: _id], repetition: index / elements.count)
+    private func itemCount(for index: CollectionDataIndex<ID>) -> Int {
+        guard index.ids.isNotEmpty else { return 0 }
+        return isCarousel ? max(100, effectiveItemCount, index.ids.count) : index.ids.count
+    }
+
+    private func item(at index: Int) -> CollectionItem<ID> {
+        if let stagedItems {
+            return stagedItems[index]
         }
+        return dataIndex.item(at: index)
+    }
+
+    private func element(at position: Int) -> Element {
+        if let stagedItems, let dataTransition {
+            return dataTransition.element(for: stagedItems[position].id, in: data, index: dataIndex)
+        }
+        return dataIndex.element(in: data, at: position)
     }
 
     func configure(_ configuration: CollectionHStack<Element, Data, ID, Content>) {
@@ -457,10 +488,10 @@ public class UICollectionHStack<
 
     private func refreshVisibleItems() {
         for path in collectionView.indexPathsForVisibleItems {
-            guard items.indices.contains(path.item),
+            guard (0 ..< effectiveItemCount).contains(path.item),
                   let cell = collectionView.cellForItem(at: path) as? HostingCollectionViewCell<Content> else { continue }
-            let item = items[path.item]
-            cell.setup(view: viewProvider(item.element), id: AnyHashable(item.differenceIdentifier))
+            let item = item(at: path.item)
+            cell.setup(view: viewProvider(element(at: path.item)), id: AnyHashable(item.differenceIdentifier))
         }
     }
 
@@ -498,11 +529,16 @@ public class UICollectionHStack<
 
         // data
 
-        let newItems = makeItems(from: newData, carouselCount: isCarousel ? effectiveItemCount : nil)
-        let hasDataChanges = items.map(\.differenceIdentifier) != newItems.map(\.differenceIdentifier)
+        var newIndex = dataIndex
+        var lookup: [ID: Int]?
+        let changedIDs = newIndex.update(from: newData, id: _id, prefix: dataPrefix, lookup: &lookup)
+        let newCount = itemCount(for: newIndex)
+        let hasDataChanges = changedIDs || newCount != effectiveItemCount
 
         if hasDataChanges {
-            let changes = StagedChangeset(source: items, target: newItems, section: 0)
+            let source = dataIndex.items(count: effectiveItemCount)
+            let target = newIndex.items(count: newCount)
+            let changes = StagedChangeset(source: source, target: target, section: 0)
 
             dataUpdateGeneration += 1
             let updateGeneration = dataUpdateGeneration
@@ -517,14 +553,22 @@ public class UICollectionHStack<
                 self.scheduleAlignedLeadingElementIDUpdate()
             }
 
+            dataTransition = CollectionDataTransition(
+                previousData: data, previousIndex: dataIndex, currentIndex: newIndex,
+                lookup: &lookup, hasDeletions: changes.contains { !$0.elementDeleted.isEmpty }
+            )
+            stagedItems = source
             data = newData
-            collectionView.reload(using: changes) { data in
-                self.items = data
-                self.effectiveItemCount = data.count
+            dataIndex = newIndex
+            collectionView.reload(using: changes) { items in
+                self.stagedItems = items
+                self.effectiveItemCount = items.count
             }
+            stagedItems = nil
+            dataTransition = nil
         } else {
             data = newData
-            items = newItems
+            dataIndex = newIndex
         }
         refreshVisibleItems()
 
@@ -572,8 +616,8 @@ public class UICollectionHStack<
             for: indexPath
         ) as! HostingCollectionViewCell<Content>
 
-        let element = items[indexPath.item].element
-        cell.setup(view: viewProvider(element), id: AnyHashable(items[indexPath.item].differenceIdentifier))
+        let item = item(at: indexPath.item)
+        cell.setup(view: viewProvider(element(at: indexPath.item)), id: AnyHashable(item.differenceIdentifier))
 
         return cell
     }
@@ -601,13 +645,13 @@ public class UICollectionHStack<
         if case CollectionHStackLayout.selfSizingVariadicWidth = layout {
             guard data.isNotEmpty else { return .zero }
 
-            let element = items[indexPath.item].element
-            let id = element[keyPath: _id]
+            let item = item(at: indexPath.item)
+            let id = item.id
 
             if let cachedSize = variadicItemSizeCache[id] {
                 size = cachedSize
             } else {
-                let measuredSize = contentSize(width: nil, element: element)
+                let measuredSize = contentSize(width: nil, element: element(at: indexPath.item))
                 variadicItemSizeCache[id] = measuredSize
                 size = measuredSize
             }
@@ -670,9 +714,8 @@ public class UICollectionHStack<
         let reachPosition = collectionView.contentSize.width - collectionView.bounds.width * 2
         let reachedTrailing = contentOffset >= reachPosition
 
-        if reachedTrailing, items.isNotEmpty {
-            items = makeItems(from: data, carouselCount: effectiveItemCount + 100)
-            effectiveItemCount = items.count
+        if reachedTrailing, effectiveItemCount > 0, !isDataUpdateInProgress {
+            effectiveItemCount += 100
             collectionView.reloadData()
         }
     }
@@ -714,7 +757,7 @@ public class UICollectionHStack<
 
         let visibleItems = collectionView
             .indexPathsForVisibleItems
-            .map { items[$0.item].element }
+            .map { element(at: $0.item) }
 
         didScrollToItems(visibleItems)
     }
@@ -787,21 +830,24 @@ public class UICollectionHStack<
 
         guard let alignedIndexPath, alignedIndexPath.item < effectiveItemCount else { return nil }
 
-        let element = items[alignedIndexPath.item].element
-        return element[keyPath: _id]
+        return item(at: alignedIndexPath.item).id
     }
 
     // MARK: UICollectionViewDataSourcePrefetching
 
     public func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-        let prefetchingElements = indexPaths.filter { items.indices.contains($0.item) }.map { items[$0.item].element }
-
+        let prefetchingElements = indexPaths.compactMap { path -> Element? in
+            guard (0 ..< effectiveItemCount).contains(path.item) else { return nil }
+            return element(at: path.item)
+        }
         onPrefetchingElements(prefetchingElements)
     }
 
     public func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
-        let cancellingElements = indexPaths.filter { items.indices.contains($0.item) }.map { items[$0.item].element }
-
+        let cancellingElements = indexPaths.compactMap { path -> Element? in
+            guard (0 ..< effectiveItemCount).contains(path.item) else { return nil }
+            return element(at: path.item)
+        }
         onCancelPrefetchingElements(cancellingElements)
     }
 }

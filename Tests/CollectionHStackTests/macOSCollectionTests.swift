@@ -109,6 +109,39 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
+    func unchangedIDsRefreshVisibleContentWhenSliceIndicesMove() async throws {
+        struct Value {
+            let id: Int
+            let content: String
+        }
+        var configured: [String] = []
+        func configuration(_ values: ArraySlice<Value>) -> CollectionHStack<Value, ArraySlice<Value>, Int, Text> {
+            CollectionHStack(uniqueElements: values, id: \.id, columns: 2) {
+                configured.append($0.content)
+                return Text($0.content)
+            }.asCarousel()
+        }
+        let initial = (0 ..< 4).map { Value(id: $0, content: "old") }
+        let view = NSCollectionHStack(configuration: configuration(initial[2...]))
+        let window = makeWindow(view)
+        defer {
+            view.disconnect()
+            window.close()
+        }
+        view.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(!view.collectionView.visibleItems().isEmpty)
+        let next = [Value(id: 2, content: "new 2"), Value(id: 3, content: "new 3")]
+        configured.removeAll()
+        view.update(configuration: configuration(next[...]), isScrollEnabled: true, dynamicTypeSize: .large)
+        #expect(!configured.isEmpty)
+        #expect(configured.allSatisfy { $0.hasPrefix("new") })
+        #expect(view.collectionView.numberOfItems(inSection: 0) == 100)
+        #expect(view.index(id: 2) == 0)
+        #expect(view.index(id: 3) == 1)
+    }
+
+    @Test
     func layoutVariantsPreserveColumnMajorOrdering() throws {
         let layouts: [CollectionHStackLayout] = [
             .grid(columns: 2.5, rows: 2, columnTrailingInset: 0),
@@ -283,7 +316,7 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func visibleLayoutBenchmark() {
+    func visibleLayoutAttributesAreIndependentOfTotalItemCount() {
         var expectedAttributes: Int?
         for count in [100, 10000, 100_000] {
             let view = NSCollectionHStack(configuration: CollectionHStack(count: count, columns: 3) { _ in
@@ -291,19 +324,13 @@ struct MacOSCollectionHStackTests {
             }.insets(horizontal: 10).itemSpacing(10))
             view.frame = CGRect(x: 0, y: 0, width: 500, height: 200)
             view.layoutSubtreeIfNeeded()
-            var attributes = 0
-            let elapsed = ContinuousClock().measure {
-                for _ in 0 ..< 5000 {
-                    attributes += view.collectionLayout.layoutAttributesForElements(in: CGRect(x: 0, y: 0, width: 500, height: 200)).count
-                }
-            }
+            let attributes = view.collectionLayout.layoutAttributesForElements(in: CGRect(x: 0, y: 0, width: 500, height: 200)).count
             if let expectedAttributes {
                 #expect(attributes == expectedAttributes)
             } else {
                 expectedAttributes = attributes
             }
-            #expect(attributes > 0 && attributes < 100_000)
-            print("LAYOUT_BENCHMARK items=\(count) queries=5000 duration=\(elapsed)")
+            #expect(attributes > 0 && attributes < 20)
             view.disconnect()
         }
     }

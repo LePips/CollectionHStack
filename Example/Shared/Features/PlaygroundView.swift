@@ -9,6 +9,8 @@ struct PlaygroundView: View {
     @State private var behavior: CollectionHStackScrollBehavior = .continuousLeadingEdge
     @State private var carousel = false
     @State private var minimumWidth: CGFloat = 140
+    @State private var initialPresentation = 0
+    @State private var isInitialCollectionLoaded = false
     @StateObject private var proxy = CollectionHStackProxy()
 
     var body: some View {
@@ -18,6 +20,43 @@ struct PlaygroundView: View {
                     ExampleSection("Columns and rows") {
                         mainCollection
                             .padding(.vertical, 8)
+                    }
+
+                    ExampleSection("Initial element") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Loads for one second, then appears at Item 41 without animation.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 10)
+
+                            if isInitialCollectionLoaded {
+                                CollectionHStack(count: 100, columns: columns) { index in
+                                    card(index)
+                                        .aspectRatio(1.6, contentMode: .fill)
+                                }
+                                .scrollBehavior(.continuousLeadingEdge)
+                                .initialElement(id: 40)
+                            } else {
+                                ProgressView("Loading…")
+                                    .frame(maxWidth: .infinity, minHeight: 100)
+                            }
+
+                            Button("Present again") {
+                                isInitialCollectionLoaded = false
+                                initialPresentation += 1
+                            }
+                            .padding(.horizontal, 10)
+                        }
+                        .padding(.vertical, 8)
+                        .task(id: initialPresentation) {
+                            isInitialCollectionLoaded = false
+                            do {
+                                try await Task.sleep(for: .seconds(1))
+                            } catch {
+                                return
+                            }
+                            isInitialCollectionLoaded = true
+                        }
                     }
 
                     ExampleSection("Minimum width") {

@@ -1,4 +1,3 @@
-import DifferenceKit
 import SwiftUI
 
 // MARK: Comparable
@@ -113,27 +112,6 @@ extension Sequence {
         }
 
         return results
-    }
-}
-
-// MARK: Int
-
-struct CollectionItem<Element, ID: Hashable>: Differentiable {
-    let element: Element
-    let id: ID
-    var repetition: Int = 0
-
-    struct Identity: Hashable {
-        let id: ID
-        let repetition: Int
-    }
-
-    var differenceIdentifier: Identity {
-        Identity(id: id, repetition: repetition)
-    }
-
-    func isContentEqual(to source: Self) -> Bool {
-        true
     }
 }
 

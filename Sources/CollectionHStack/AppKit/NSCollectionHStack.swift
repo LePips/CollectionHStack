@@ -46,15 +46,28 @@ public final class NSCollectionHStack<
         let repetition: Int
     }
 
+    private enum ScrollAnchor {
+        case leading
+        case trailing
+        case item(index: Int, fraction: CGFloat, centered: Bool)
+    }
+
+    private var scrollAnchor: ScrollAnchor?
+    private var anchorOffset: CGFloat?
+    private var applyingLayout = false
     private var configuration: CollectionHStack<Element, Data, ID, Content>
+    private var pendingInitialElementID: ID?
     let scrollView = CollectionScrollView()
     let collectionView = CollectionDocumentView()
     let collectionLayout = CollectionLayout()
     private var dataSource: NSCollectionViewDiffableDataSource<Int, ItemID>!
-    private var elements: [Element] = []
-    private var ids: [ID] = []
-    private var elementsByID: [ID: Element] = [:]
-    private var itemIDs: [ItemID] = []
+    private var dataIndex = CollectionDataIndex<ID>()
+    private var indicesByID: [ID: Int] = [:]
+    private var ids: [ID] {
+        dataIndex.ids
+    }
+
+    private var itemCount = 0
     private var itemSizeCache = ItemSizeCache()
     private var variableSizes: [ID: CGSize] = [:]
     private var cachedSize: (width: CGFloat, item: CGSize, height: CGFloat)?
@@ -93,7 +106,7 @@ public final class NSCollectionHStack<
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         dataSource = NSCollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collection, path, id in
-            guard let self, let element = self.elementsByID[id.id] else { return nil }
+            guard let self, let element = self.element(at: path.item, id: id.id) else { return nil }
             let item = collection.makeItem(withIdentifier: .init("content"), for: path) as! HostingCollectionViewItem
             item.configure(self.configuration.viewProvider(element), id: AnyHashable(id))
             return item
@@ -115,6 +128,9 @@ public final class NSCollectionHStack<
         }
         scrollView.didScroll = { [weak self] in self?.scheduleSettle(snap: true) }
         update(configuration: configuration, isScrollEnabled: true, dynamicTypeSize: .large)
+        pendingInitialElementID = configuration.initialElementID.flatMap { target in
+            ids.contains(target) ? target : nil
+        }
     }
 
     @available(*, unavailable)
@@ -139,6 +155,18 @@ public final class NSCollectionHStack<
         if collectionView.frame.size != contentSize {
             collectionView.setFrameSize(contentSize)
         }
+        applyInitialElementIfNeeded()
+    }
+
+    private func applyInitialElementIfNeeded() {
+        guard let target = pendingInitialElementID,
+              scrollView.contentSize.width.isFiniteAndPositive,
+              scrollView.contentSize.height.isFiniteAndPositive else { return }
+
+        // Consume before scrolling, which can synchronously trigger another layout.
+        pendingInitialElementID = nil
+        guard let index = ids.firstIndex(of: target) else { return }
+        scrollTo(index: index, animated: false)
     }
 
     func update(
@@ -152,7 +180,16 @@ public final class NSCollectionHStack<
         if configuration.proxy !== new.proxy, configuration.proxy.collectionView === self {
             configuration.proxy.collectionView = nil
         }
+        var newIndex = dataIndex
+        var newLookup = indicesByID
+        let changedData = newIndex.update(from: new.data, id: new.id, prefix: new.dataPrefix, retainingLookup: &newLookup)
+        if changedData {
+            cancelPrefetch()
+        }
+        updating = changedData || changedCarousel
         configuration = new
+        indicesByID = newLookup
+        dataIndex = newIndex
         self.dynamicTypeSize = dynamicTypeSize
         configuration.proxy.collectionView = self
         scrollView.allowsScrolling = isScrollEnabled
@@ -162,19 +199,6 @@ public final class NSCollectionHStack<
         collectionView.clipsToBounds = new.clipsToBounds
         scrollView.clipsToBounds = new.clipsToBounds
         clipsToBounds = new.clipsToBounds
-
-        let newElements = Array(new.data.prefixPositive(new.dataPrefix ?? 0))
-        let newIDs = newElements.map { $0[keyPath: new.id] }
-        precondition(Set(newIDs).count == newIDs.count, "CollectionHStack requires unique element IDs")
-
-        let changedData = ids != newIDs
-        if changedData {
-            cancelPrefetch()
-        }
-
-        elements = newElements
-        ids = newIDs
-        elementsByID = Dictionary(uniqueKeysWithValues: zip(ids, elements))
 
         if changedSizing || changedData {
             invalidateSizing()
@@ -194,18 +218,36 @@ public final class NSCollectionHStack<
 
     private func applySnapshot(count: Int) {
         updating = true
-        itemIDs = ids.isEmpty ? [] : (0 ..< count).map { ItemID(id: ids[$0 % ids.count], repetition: $0 / ids.count) }
+        scrollAnchor = nil
+        anchorOffset = nil
+        itemCount = ids.isEmpty ? 0 : count
         var snapshot = NSDiffableDataSourceSnapshot<Int, ItemID>()
         snapshot.appendSections([0])
-        snapshot.appendItems(itemIDs)
+        snapshot.appendItems((0 ..< itemCount).map { itemID(at: $0) })
         dataSource.apply(snapshot, animatingDifferences: false)
         appliedWidth = nil
         updating = false
     }
 
+    private func itemID(at index: Int) -> ItemID {
+        ItemID(id: ids[index % ids.count], repetition: index / ids.count)
+    }
+
+    private func element(at position: Int, id: ID) -> Element? {
+        if !updating, (0 ..< itemCount).contains(position) {
+            return dataIndex.element(in: configuration.data, at: position)
+        }
+        return element(for: id)
+    }
+
+    private func element(for id: ID) -> Element? {
+        guard let index = indicesByID[id] else { return nil }
+        return configuration.data[index]
+    }
+
     private func refreshVisibleItems() {
         for path in collectionView.indexPathsForVisibleItems() {
-            guard let id = dataSource.itemIdentifier(for: path), let element = elementsByID[id.id],
+            guard let id = dataSource.itemIdentifier(for: path), let element = element(at: path.item, id: id.id),
                   let item = collectionView.item(at: path) as? HostingCollectionViewItem else { continue }
             item.configure(configuration.viewProvider(element), id: AnyHashable(id))
         }
@@ -246,26 +288,47 @@ public final class NSCollectionHStack<
     }
 
     private func measure(width: CGFloat?) -> CGSize {
-        guard let element = elements.first else { return CGSize(width: width ?? 0, height: 0) }
+        guard ids.isNotEmpty else { return CGSize(width: width ?? 0, height: 0) }
         return itemSizeCache.size(width: width) {
-            measuredContentSize(configuration.viewProvider(element), width: width)
+            let element = configuration.data[configuration.data.startIndex]
+            return measuredContentSize(configuration.viewProvider(element), width: width)
         }
     }
 
     private func applyLayout(forWidth width: CGFloat) {
+        // Bounds changes during retiling can clamp the old pixel offset before we
+        // get here. Use the anchor recorded while the previous layout was valid.
+        let anchor = scrollAnchor
+        applyingLayout = true
+        settleWork?.cancel()
+        cancelScrollAnimation()
+        gestureStart = nil
+        defer {
+            applyingLayout = false
+            // Keep the original fraction across consecutive resizes. Repeatedly
+            // sampling AppKit's pixel-rounded offset would accumulate drift.
+            if anchor != nil {
+                anchorOffset = scrollView.contentView.bounds.minX
+            } else {
+                recordScrollAnchor()
+            }
+            updatePrefetch()
+        }
+
         let result = computeSizes(forWidth: width)
         collectionLayout.lanes = rows
         collectionLayout.itemSize = result.itemSize
         collectionLayout.insets = configuration.insets.appKitInsets
         collectionLayout.itemSpacing = nonnegativeFinite(configuration.itemSpacing)
         collectionLayout.lineSpacing = nonnegativeFinite(configuration.itemSpacing)
-        
+
         if case .selfSizingVariadicWidth = configuration.layout {
-            collectionLayout.variableSizes = itemIDs.compactMap { item in
+            collectionLayout.variableSizes = (0 ..< itemCount).compactMap { index in
+                let item = itemID(at: index)
                 if let size = variableSizes[item.id] {
                     return size
                 }
-                guard let element = elementsByID[item.id] else { return nil }
+                guard let element = element(at: index, id: item.id) else { return nil }
                 let size = measuredContentSize(configuration.viewProvider(element))
                 variableSizes[item.id] = size
                 return size
@@ -273,18 +336,69 @@ public final class NSCollectionHStack<
         } else {
             collectionLayout.variableSizes = []
         }
-        
+
         collectionLayout.invalidateLayout()
         collectionLayout.prepare()
         collectionView.setFrameSize(collectionLayout.collectionViewContentSize)
         appliedWidth = width
-        
+        if let anchor {
+            restoreScrollAnchor(anchor)
+        }
+
         if intrinsicHeight != result.selfSize.height {
             intrinsicHeight = result.selfSize.height
             invalidateIntrinsicContentSize()
         }
-        
+
         collectionView.needsLayout = true
+    }
+
+    private func recordScrollAnchor() {
+        let viewport = scrollView.contentView.bounds
+        // A resize notification can arrive before the new item metrics are applied.
+        guard !applyingLayout, appliedWidth == bounds.width, appliedWidth == viewport.width else { return }
+        // AppKit may round the restored origin to a backing pixel in a later pass.
+        let tolerance = 1 / max(window?.backingScaleFactor ?? 1, 1)
+        if let anchorOffset, abs(anchorOffset - viewport.minX) <= tolerance {
+            return
+        }
+        anchorOffset = viewport.minX
+        guard itemCount > 0 else {
+            scrollAnchor = nil
+            return
+        }
+        if viewport.minX <= 0.5 {
+            scrollAnchor = .leading
+        } else if viewport.minX >= maximumOffset - 0.5 {
+            scrollAnchor = .trailing
+        } else {
+            let centered = configuration.scrollBehavior == .continuous || configuration.scrollBehavior == .fullPaging
+            let reference = viewport.minX + (centered ? viewport.width / 2 : collectionLayout.insets.left)
+            let attributes = collectionLayout.layoutAttributesForElements(in: viewport)
+            let nearest = attributes.min {
+                let lhs = centered ? $0.frame.midX : $0.frame.minX
+                let rhs = centered ? $1.frame.midX : $1.frame.minX
+                return abs(lhs - reference) < abs(rhs - reference)
+            }
+            guard let nearest, let index = nearest.indexPath?.item, nearest.frame.width.isFiniteAndPositive else { return }
+            scrollAnchor = .item(index: index, fraction: (reference - nearest.frame.minX) / nearest.frame.width, centered: centered)
+        }
+    }
+
+    private func restoreScrollAnchor(_ anchor: ScrollAnchor) {
+        let offset: CGFloat
+        switch anchor {
+        case .leading:
+            offset = 0
+        case .trailing:
+            offset = maximumOffset
+        case let .item(index, fraction, centered):
+            guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0)) else { return }
+            let reference = centered ? scrollView.contentSize.width / 2 : collectionLayout.insets.left
+            offset = attributes.frame.minX + attributes.frame.width * fraction - reference
+        }
+        scrollView.contentView.scroll(to: CGPoint(x: offset.clamped(to: 0 ... maximumOffset), y: 0))
+        scrollView.reflectScrolledClipView(scrollView.contentView)
     }
 
     public func snapshotReload() {
@@ -297,15 +411,15 @@ public final class NSCollectionHStack<
     }
 
     public func scrollTo(index: Int, animated: Bool) {
-        guard itemIDs.indices.contains(index) else { return }
+        guard (0 ..< itemCount).contains(index) else { return }
         layoutSubtreeIfNeeded()
         guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0)) else { return }
-        
+
         let target: CGFloat = switch configuration.scrollBehavior {
         case .continuousLeadingEdge, .columnPaging: attributes.frame.minX - configuration.insets.leading
         case .continuous, .fullPaging: attributes.frame.midX - scrollView.contentSize.width / 2
         }
-        
+
         scroll(to: target, animated: animated)
     }
 
@@ -316,7 +430,7 @@ public final class NSCollectionHStack<
     private func scroll(to offset: CGFloat, animated: Bool) {
         cancelScrollAnimation()
         gestureStart = nil
-        
+
         let point = CGPoint(x: offset.clamped(to: 0 ... maximumOffset), y: 0)
         if animated, point != scrollView.contentView.bounds.origin {
             isAnimatingScroll = true
@@ -343,7 +457,7 @@ public final class NSCollectionHStack<
         guard isAnimatingScroll else { return }
         isAnimatingScroll = false
         scrollAnimationGeneration += 1
-        
+
         let origin = scrollView.contentView.bounds.origin
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0
@@ -353,7 +467,8 @@ public final class NSCollectionHStack<
 
     @objc
     private func boundsChanged() {
-        guard !updating, !disconnected else { return }
+        guard !updating, !applyingLayout, !disconnected else { return }
+        recordScrollAnchor()
         scheduleSettle(snap: gestureStart != nil)
         updatePrefetch()
     }
@@ -361,7 +476,7 @@ public final class NSCollectionHStack<
     private func scheduleSettle(snap: Bool) {
         settleWork?.cancel()
         guard !disconnected, !isAnimatingScroll, !scrollView.isTrackingScroll else { return }
-        
+
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             if snap || self.gestureStart != nil {
@@ -381,7 +496,7 @@ public final class NSCollectionHStack<
     func settledOffset(proposed: CGFloat, gestureStart: CGFloat?) -> CGFloat {
         let offset = proposed.clamped(to: 0 ... maximumOffset)
         guard configuration.scrollBehavior != .continuous else { return offset }
-        
+
         if configuration.scrollBehavior == .fullPaging {
             let page = max(1, bounds.width - configuration.insets.leading - configuration.insets.trailing + configuration.itemSpacing)
             var targetPage = (offset / page).rounded()
@@ -391,16 +506,16 @@ public final class NSCollectionHStack<
             }
             return (targetPage * page).clamped(to: 0 ... maximumOffset)
         }
-        
+
         let reference = configuration.scrollBehavior == .columnPaging ? (gestureStart ?? offset) : offset
         let rect = CGRect(x: reference - bounds.width, y: 0, width: bounds.width * 3, height: bounds.height)
         let columns = collectionLayout.layoutAttributesForElements(in: rect).filter { ($0.indexPath?.item ?? 0) % rows == 0 }
         let nearest = columns.min {
             abs($0.frame.minX - reference - configuration.insets.leading) < abs($1.frame.minX - reference - configuration.insets.leading)
         }
-        
+
         guard let nearest, let index = nearest.indexPath?.item else { return offset }
-        
+
         let candidates: [CGFloat]
         if configuration.scrollBehavior == .columnPaging, gestureStart != nil {
             candidates = [index - rows, index, index + rows].compactMap {
@@ -414,7 +529,7 @@ public final class NSCollectionHStack<
             }
             candidates = columns.map { $0.frame.minX - configuration.insets.leading }
         }
-        
+
         let target = candidates.min { abs($0 - offset) < abs($1 - offset) } ?? offset
         return target.clamped(to: 0 ... maximumOffset)
     }
@@ -423,26 +538,26 @@ public final class NSCollectionHStack<
         guard !updating else { return }
         let visible = collectionView.indexPathsForVisibleItems().map(\.item).sorted()
         let offset = scrollView.contentView.bounds.minX
-        
+
         let leading: Bool = switch configuration.onReachedLeadingEdgeOffset {
         case let .offset(threshold): offset <= threshold
         case let .columns(count): (visible.first ?? Int.max) / rows < count
         }
-        
+
         let trailing: Bool = switch configuration.onReachedTrailingEdgeOffset {
         case let .offset(threshold): offset >= maximumOffset - threshold
         case let .columns(count): (visible.last.map { $0 / rows } ?? Int.min) >= collectionLayout.groups - count
         }
-        
+
         updateEdge(.leading, reached: ids.isNotEmpty && leading, action: configuration.onReachedLeadingEdge)
-        
+
         if configuration.isCarousel, ids.isNotEmpty, offset >= maximumOffset - bounds.width {
-            applySnapshot(count: itemIDs.count + 100)
+            applySnapshot(count: itemCount + 100)
             needsLayout = true
         } else {
             updateEdge(.trailing, reached: ids.isNotEmpty && trailing, action: configuration.onReachedTrailingEdge)
         }
-        
+
         if let binding = configuration.alignedLeadingElementID {
             var alignedID: ID?
             if configuration.scrollBehavior == .continuousLeadingEdge || configuration.scrollBehavior == .columnPaging {
@@ -451,7 +566,7 @@ public final class NSCollectionHStack<
                     guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0))
                     else { continue }
                     if abs(attributes.frame.minX - offset - configuration.insets.leading) <= tolerance {
-                        alignedID = itemIDs[index].id
+                        alignedID = itemID(at: index).id
                         break
                     }
                 }
@@ -460,8 +575,11 @@ public final class NSCollectionHStack<
                 binding.wrappedValue = alignedID
             }
         }
-        
-        configuration.didScrollToItems(visible.compactMap { itemIDs.indices.contains($0) ? elementsByID[itemIDs[$0].id] : nil })
+
+        configuration.didScrollToItems(visible.compactMap { (0 ..< itemCount).contains($0) ? dataIndex.element(
+            in: configuration.data,
+            at: $0
+        ) : nil })
     }
 
     private func updateEdge(_ edge: Edge, reached: Bool, action: () -> Void) {
@@ -479,17 +597,17 @@ public final class NSCollectionHStack<
         let viewport = scrollView.contentView.bounds
         let visible = Set(collectionLayout.layoutAttributesForElements(in: viewport).compactMap { $0.indexPath?.item })
         let nearby = collectionLayout.layoutAttributesForElements(in: viewport.insetBy(dx: -viewport.width, dy: 0))
-        
+
         let next = Set(nearby.compactMap { attributes -> ID? in
-            guard let index = attributes.indexPath?.item, !visible.contains(index), itemIDs.indices.contains(index) else { return nil }
-            return itemIDs[index].id
+            guard let index = attributes.indexPath?.item, !visible.contains(index), (0 ..< itemCount).contains(index) else { return nil }
+            return itemID(at: index).id
         })
-        
-        let cancelled = prefetched.subtracting(next).compactMap { elementsByID[$0] }
-        let added = next.subtracting(prefetched).compactMap { elementsByID[$0] }
-        
+
+        let cancelled = prefetched.subtracting(next).compactMap { element(for: $0) }
+        let added = next.subtracting(prefetched).compactMap { element(for: $0) }
+
         prefetched = next
-        
+
         if cancelled.isNotEmpty {
             configuration.onCancelPrefetchingElements(cancelled)
         }
@@ -499,7 +617,7 @@ public final class NSCollectionHStack<
     }
 
     private func cancelPrefetch() {
-        let cancelled = prefetched.compactMap { elementsByID[$0] }
+        let cancelled = prefetched.compactMap { element(for: $0) }
         prefetched.removeAll()
         if cancelled.isNotEmpty {
             configuration.onCancelPrefetchingElements(cancelled)

@@ -37,6 +37,7 @@ public struct CollectionHStack<
     var onCancelPrefetchingElements: ([Element]) -> Void
     var proxy: CollectionHStackProxy
     var scrollBehavior: CollectionHStackScrollBehavior
+    var initialElementID: ID?
     let viewProvider: (Element) -> Content
 
     init(
@@ -60,6 +61,7 @@ public struct CollectionHStack<
         onCancelPrefetchingElements: @escaping ([Element]) -> Void = { _ in },
         proxy: CollectionHStackProxy = .init(),
         scrollBehavior: CollectionHStackScrollBehavior = .continuous,
+        initialElementID: ID? = nil,
         viewProvider: @escaping (Element) -> Content
     ) {
         self.id = id
@@ -82,6 +84,7 @@ public struct CollectionHStack<
         self.onCancelPrefetchingElements = onCancelPrefetchingElements
         self.proxy = proxy
         self.scrollBehavior = scrollBehavior
+        self.initialElementID = initialElementID
         self.viewProvider = viewProvider
     }
 }
@@ -110,6 +113,7 @@ extension CollectionHStack: UIViewRepresentable {
             onCancelPrefetchingElements: onCancelPrefetchingElements,
             proxy: proxy,
             scrollBehavior: scrollBehavior,
+            initialElementID: initialElementID,
             viewProvider: viewProvider
         )
     }
