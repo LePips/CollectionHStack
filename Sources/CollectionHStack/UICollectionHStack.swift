@@ -75,6 +75,7 @@ public class UICollectionHStack<
     private var lastLaidOutWidth: CGFloat?
     private var layoutInvalidationGeneration = 0
     private var needsSizingUpdate = true
+    private var animatesResizing = false
     private var size = CGSize(width: UIView.noIntrinsicMetric, height: 0)
     private var variadicItemSizeCache: [ID: CGSize] = [:]
 
@@ -178,7 +179,25 @@ public class UICollectionHStack<
         layout.minimumLineSpacing = nonnegativeFinite(itemSpacing)
         layout.minimumInteritemSpacing = nonnegativeFinite(itemSpacing)
 
+        #if os(tvOS)
+        let collectionView = FocusCollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.identityAt = { [weak self] path in
+            guard let self, path.section == 0, (0 ..< self.effectiveItemCount).contains(path.item) else { return nil }
+            return AnyHashable(self.item(at: path.item).differenceIdentifier)
+        }
+        collectionView.indexPathForIdentity = { [weak self] identity in
+            guard let self, let identity = identity.base as? CollectionItem<ID>.Identity else { return nil }
+            if let stagedItems = self.stagedItems {
+                return stagedItems.firstIndex { $0.differenceIdentifier == identity }.map { IndexPath(item: $0, section: 0) }
+            }
+            guard let offset = self.dataIndex.ids.firstIndex(of: identity.id) else { return nil }
+            let position = identity.repetition * self.dataIndex.ids.count + offset
+            // If a carousel repetition disappeared, restore the surviving element.
+            return IndexPath(item: position < self.effectiveItemCount ? position : offset, section: 0)
+        }
+        #else
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        #endif
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.register(
             HostingCollectionViewCell<Content>.self,
@@ -278,6 +297,11 @@ public class UICollectionHStack<
         let newItemSize = resolvedSizes.itemSize
         let itemSizeChanged = itemSize != newItemSize
         let intrinsicHeightChanged = size.height != newSelfSize.height
+        let resize = ResizeAnimation(
+            items: visibleResizeItems, in: layer,
+            enabled: itemSizeChanged && animatesResizing && window != nil
+                && !UIAccessibility.isReduceMotionEnabled && !isDataUpdateInProgress
+        )
 
         lastLaidOutWidth = width
         needsSizingUpdate = false
@@ -306,6 +330,14 @@ public class UICollectionHStack<
 
         if intrinsicHeightChanged {
             invalidateIntrinsicContentSize()
+        }
+        resize.apply(to: visibleResizeItems, in: layer)
+    }
+
+    private var visibleResizeItems: [ResizeAnimation.Item] {
+        collectionView.visibleCells.compactMap { cell in
+            guard let cell = cell as? HostingCollectionViewCell<Content>, let id = cell.representedID else { return nil }
+            return ResizeAnimation.Item(id: id, layer: cell.layer)
         }
     }
 
@@ -476,6 +508,13 @@ public class UICollectionHStack<
     }
 
     func configure(_ configuration: CollectionHStack<Element, Data, ID, Content>) {
+        animatesResizing = configuration.animatesResizing
+        if !animatesResizing || UIAccessibility.isReduceMotionEnabled {
+            visibleResizeItems.forEach { ResizeAnimation.remove(from: $0.layer) }
+        }
+        #if os(tvOS)
+        (collectionView as? FocusCollectionView)?.behavior = configuration.focusBehavior
+        #endif
         didScrollToItems = configuration.didScrollToItems
         onReachedLeadingEdge = configuration.onReachedLeadingEdge
         onReachedLeadingEdgeOffset = configuration.onReachedLeadingEdgeOffset
@@ -640,7 +679,7 @@ public class UICollectionHStack<
 
     // MARK: UICollectionViewDelegate
 
-    /// Prevents collection items from receiving focus on tvOS.
+    /// Hosted controls receive focus, preserving their actions and focus effects.
     public func collectionView(
         _ collectionView: UICollectionView,
         canFocusItemAt indexPath: IndexPath

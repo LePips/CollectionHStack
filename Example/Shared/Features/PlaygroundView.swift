@@ -11,6 +11,7 @@ struct PlaygroundView: View {
     @State private var minimumWidth: CGFloat = 140
     @State private var initialPresentation = 0
     @State private var isInitialCollectionLoaded = false
+    @State private var initialElementID: Int? = 40
     @StateObject private var proxy = CollectionHStackProxy()
 
     var body: some View {
@@ -24,10 +25,19 @@ struct PlaygroundView: View {
 
                     ExampleSection("Initial element") {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Loads for one second, then appears at Item 41 without animation.")
+                            Text("Loads for one second. Change the target to reposition without animation.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 10)
+
+                            Picker("Initial item", selection: $initialElementID) {
+                                Text("None").tag(nil as Int?)
+                                ForEach([0, 40, 80], id: \.self) { index in
+                                    Text("Item \(index + 1)").tag(Optional(index))
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .padding(.horizontal, 10)
 
                             if isInitialCollectionLoaded {
                                 CollectionHStack(count: 100, columns: columns) { index in
@@ -35,7 +45,7 @@ struct PlaygroundView: View {
                                         .aspectRatio(1.6, contentMode: .fill)
                                 }
                                 .scrollBehavior(.continuousLeadingEdge)
-                                .initialElement(id: 40)
+                                .initialElement(id: initialElementID)
                             } else {
                                 ProgressView("Loading…")
                                     .frame(maxWidth: .infinity, minHeight: 100)

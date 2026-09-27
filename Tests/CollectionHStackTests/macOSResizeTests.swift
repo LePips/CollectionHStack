@@ -8,6 +8,36 @@ import Testing
 @MainActor
 struct MacOSResizeTests {
     @Test(arguments: 0 ..< 4)
+    func hostedArtworkAndTextResizeTogether(style: Int) async throws {
+        let host = NSHostingView(rootView: VStack(spacing: 0) {
+            CollectionHStack(count: 10000, columns: 3, rows: 2) { _ in
+                CompositeCell(style: style)
+            }.insets(horizontal: 20).itemSpacing(10)
+            Spacer(minLength: 0)
+        })
+        let window = present(host)
+        defer { window.close() }
+        for width: CGFloat in [320, 1024, 414, 768, 320] {
+            window.setContentSize(CGSize(width: width, height: 1200))
+            host.layoutSubtreeIfNeeded()
+            try await Task.sleep(for: .milliseconds(80))
+            host.layoutSubtreeIfNeeded()
+            let collection = try #require(findCollection(host))
+            let viewport = try #require(collection.enclosingScrollView)
+            let item = try #require(collection.collectionViewLayout?.layoutAttributesForItem(at: IndexPath(item: 0, section: 0)))
+            let itemWidth = (viewport.bounds.width - 60) / 3
+            let reference = NSHostingController(rootView: CompositeCell(style: style)
+                .frame(width: itemWidth).fixedSize(horizontal: false, vertical: true))
+            let expected = reference.sizeThatFits(in: CGSize(width: itemWidth, height: 1200))
+            #expect(abs(item.size.width - itemWidth) < 0.1)
+            #expect(abs(item.size.height - expected.height) < 1)
+            #expect(abs(viewport.bounds.height - (2 * expected.height + 10)) < 2)
+            #expect(!collection.visibleItems().isEmpty)
+            #expect(collection.visibleItems().count < 30)
+        }
+    }
+
+    @Test(arguments: 0 ..< 4)
     func distantTargetStaysAnchoredAcrossRepeatedResizes(behaviorIndex: Int) async throws {
         let behavior: CollectionHStackScrollBehavior = [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging][behaviorIndex]
         let view = NSCollectionHStack(configuration: CollectionHStack(count: 10000, columns: 3, rows: 2) { _ in
@@ -72,10 +102,11 @@ struct MacOSResizeTests {
         }
     }
 
-    @Test(arguments: 0 ..< 3)
+    @Test(arguments: 0 ..< 4)
     func sizingVariantsKeepTheirLeadingItem(layoutIndex: Int) throws {
         let layout: CollectionHStackLayout = [
             .minimumWidth(columnWidth: 100, rows: 2),
+            .minimumWidth(columnWidth: 100, rows: 2, columnFraction: 0.5),
             .selfSizingSameSize(rows: 2),
             .selfSizingVariadicWidth(rows: 2),
         ][layoutIndex]
@@ -88,7 +119,7 @@ struct MacOSResizeTests {
         }
         resize(view, window: window, width: 768)
         view.scrollTo(index: 700, animated: false)
-        for width: CGFloat in [320, 1366, 768] {
+        for width: CGFloat in [320, 1366, 768, 249.9, 250, 180, 179.9] {
             resize(view, window: window, width: width)
             let frame = try #require(view.collectionLayout.layoutAttributesForItem(at: IndexPath(item: 700, section: 0))).frame
             #expect(abs(view.scrollView.contentView.bounds.minX - (frame.minX - 20)) < 0.5)

@@ -43,7 +43,7 @@ struct LayoutMetricsTests {
     }
 
     @Test
-    func naturalMeasurementIsCachedSeparatelyFromProportions() {
+    func naturalMeasurementIsCachedSeparatelyFromWidthProposals() {
         var cache = ItemSizeCache()
         var measurements = 0
         for _ in 0 ..< 3 {
@@ -60,18 +60,18 @@ struct LayoutMetricsTests {
 
 struct ItemSizeCacheTests {
     @Test
-    func resizingReusesUnroundedContentProportions() {
+    func resizingCachesUnroundedMeasurementsByWidth() {
         var cache = ItemSizeCache()
         var measurements = 0
-        for width: CGFloat in [81.25, 100, 240.5] {
+        for width: CGFloat in [81.25, 100, 240.5, 100, 81.25] {
             let size = cache.size(width: width) {
                 measurements += 1
-                return CGSize(width: 81.25, height: 121.875)
+                return CGSize(width: width, height: width * 1.5 + 40)
             }
             #expect(size.width == width)
-            #expect(abs(size.height - width * 1.5) < 0.0001)
+            #expect(abs(size.height - (width * 1.5 + 40)) < 0.0001)
         }
-        #expect(measurements == 1)
+        #expect(measurements == 3)
     }
 
     @Test
@@ -86,9 +86,10 @@ struct ItemSizeCacheTests {
         }
         #expect(measurements == 3)
         #expect(cache.size(width: 100) { CGSize(width: 100, height: 50) }.height == 50)
-        #expect(cache.size(width: 200) { Issue.record("A valid ratio should be cached")
+        #expect(cache.size(width: 100) { Issue.record("The measured width should be cached")
             return .zero
-        }.height == 100)
+        }.height == 50)
+        #expect(cache.size(width: 200) { CGSize(width: 200, height: 60) }.height == 60)
         cache = ItemSizeCache()
         #expect(cache.size(width: 100) { CGSize(width: 100, height: 75) }.height == 75)
     }
@@ -102,5 +103,23 @@ struct ItemSizeCacheTests {
             } == .zero)
         }
         #expect(cache.size(width: 100) { CGSize(width: 100, height: 50) }.height == 50)
+    }
+
+    @Test
+    func liveResizeKeepsOnlyRecentMeasurements() {
+        var cache = ItemSizeCache()
+        for width in 1 ... 1000 {
+            _ = cache.size(width: CGFloat(width)) { CGSize(width: width, height: 50) }
+        }
+        #expect(cache.size(width: 1000) {
+            Issue.record("The latest width should be cached")
+            return .zero
+        }.height == 50)
+        var remeasured = false
+        _ = cache.size(width: 1) {
+            remeasured = true
+            return CGSize(width: 1, height: 50)
+        }
+        #expect(remeasured, "A continuous resize must not retain every past width")
     }
 }

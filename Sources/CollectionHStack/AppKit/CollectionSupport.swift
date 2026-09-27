@@ -38,12 +38,26 @@ final class CollectionScrollView: NSScrollView {
 /// Keep the hosting view across reuse; changing the identity resets SwiftUI state for a new item.
 final class HostingCollectionViewItem: NSCollectionViewItem {
     private var host: NSHostingView<AnyView>?
+    private(set) var representedID: AnyHashable?
 
     override func loadView() {
         view = NSView()
+        view.wantsLayer = true
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        if let layer = view.layer {
+            ResizeAnimation.remove(from: layer)
+        }
+        representedID = nil
     }
 
     func configure(_ content: some View, id: AnyHashable) {
+        if representedID != id, let layer = view.layer {
+            ResizeAnimation.remove(from: layer)
+        }
+        representedID = id
         let root = AnyView(content.id(id))
         if let host {
             host.rootView = root

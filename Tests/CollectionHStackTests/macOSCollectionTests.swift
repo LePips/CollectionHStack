@@ -8,6 +8,30 @@ import Testing
 @MainActor
 struct MacOSCollectionHStackTests {
     @Test
+    func fractionalMinimumWidthCachesMeasurementsAndRefreshesWhenFractionChanges() {
+        var measurements = 0
+        func configuration(fraction: CGFloat) -> CollectionHStack<Int, [Int], Int, some View> {
+            CollectionHStack(count: 10000, minWidth: 100, columnFraction: fraction, rows: 2) { _ in
+                measurements += 1
+                return Color.blue.frame(height: 50)
+            }.insets(horizontal: 0).itemSpacing(10)
+        }
+        let view = NSCollectionHStack(configuration: configuration(fraction: 0.5))
+        defer { view.disconnect() }
+        for (width, itemWidth): (CGFloat, CGFloat) in [(210, 100), (209, 199 / 1.5), (160, 100), (159, 159), (210, 100)] {
+            let size = view.computeSizes(forWidth: width)
+            #expect(abs(size.itemSize.width - itemWidth) < 0.001)
+            #expect(size.itemSize.height == 50)
+            #expect(size.selfSize.height == 110)
+        }
+        #expect(measurements == 3)
+        view.update(configuration: configuration(fraction: 0), isScrollEnabled: true, dynamicTypeSize: .large)
+        #expect(view.computeSizes(forWidth: 160).itemSize.width == 160)
+        view.update(configuration: configuration(fraction: 0.5), isScrollEnabled: true, dynamicTypeSize: .large)
+        #expect(view.computeSizes(forWidth: 160).itemSize.width == 100)
+    }
+
+    @Test
     func measurementsAreCachedAndRedrawRemeasures() {
         let proxy = CollectionHStackProxy()
         let model = SizeModel()
@@ -17,9 +41,10 @@ struct MacOSCollectionHStackTests {
 
         let view = NSCollectionHStack(configuration: configuration)
         #expect(view.fittingSize(forWidth: 210).height == 50)
-        // Cached proportions survive content changes until explicitly redrawn.
+        // A previously measured width is cached until explicitly redrawn.
         model.height = 75
-        #expect(view.fittingSize(forWidth: 410).height == 100)
+        #expect(view.fittingSize(forWidth: 210).height == 50)
+        #expect(view.fittingSize(forWidth: 410).height == 75)
         #expect(view.fittingSize(forWidth: 310).height == 75)
         proxy.redraw()
         #expect(view.fittingSize(forWidth: 210).height == 75)
@@ -146,6 +171,7 @@ struct MacOSCollectionHStackTests {
         let layouts: [CollectionHStackLayout] = [
             .grid(columns: 2.5, rows: 2, columnTrailingInset: 0),
             .minimumWidth(columnWidth: 80, rows: 2),
+            .minimumWidth(columnWidth: 80, rows: 2, columnFraction: 0.5),
             .selfSizingSameSize(rows: 2), .selfSizingVariadicWidth(rows: 2),
         ]
         for layout in layouts {

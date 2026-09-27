@@ -9,7 +9,7 @@ struct LayoutMetrics {
 
     var rows: Int {
         switch layout {
-        case let .grid(_, rows, _), let .minimumWidth(_, rows),
+        case let .grid(_, rows, _), let .minimumWidth(_, rows, _),
              let .selfSizingSameSize(rows), let .selfSizingVariadicWidth(rows):
             max(1, rows)
         }
@@ -25,19 +25,48 @@ struct LayoutMetrics {
         guard availableWidth.isFiniteAndPositive else { return 0 }
         switch layout {
         case let .grid(columns, _, trailingInset):
-            let columns = columns.positiveFinite(or: 1)
-            let integral = floor(columns) == columns
-            let gaps = integral ? max(0, columns - 1) : floor(columns)
-            let occupied = insets.leading + (integral ? insets.trailing : 0) + gaps * spacing + trailingInset
-            return nonnegativeFinite((availableWidth - occupied) / columns)
-        case let .minimumWidth(minimum, _):
+            return itemWidth(for: availableWidth, columns: columns.positiveFinite(or: 1), trailingInset: trailingInset)
+        case let .minimumWidth(minimum, _, fraction):
             let minimum = minimum.positiveFinite(or: 1)
             let contentWidth = nonnegativeFinite(availableWidth - insets.leading - insets.trailing)
-            let columns = max(1, floor((contentWidth + spacing) / (minimum + spacing)))
-            return nonnegativeFinite((contentWidth - (columns - 1) * spacing) / columns)
+            let wholeColumns = floor((contentWidth + spacing) / (minimum + spacing))
+            var columns = fittingColumns(near: wholeColumns, minimum: minimum, availableWidth: availableWidth)
+            if fraction.isFinite, fraction > 0, fraction < 1 {
+                // A partial column uses a full gap and no trailing inset, just
+                // like .grid. Solve separately instead of rounding whole columns.
+                let fractionalContentWidth = availableWidth - insets.leading
+                let fractionalColumns = floor((fractionalContentWidth - fraction * minimum) / (minimum + spacing)) + fraction
+                columns = max(columns, fittingColumns(near: fractionalColumns, minimum: minimum, availableWidth: availableWidth))
+            }
+            let width = itemWidth(for: availableWidth, columns: columns)
+            // Subtracting insets and dividing can undershoot by one floating-point
+            // step even when the minimum-width geometry above fits exactly.
+            return columns > 1 ? max(minimum, width) : width
         case .selfSizingSameSize, .selfSizingVariadicWidth:
             return nil
         }
+    }
+
+    private func itemWidth(for availableWidth: CGFloat, columns: CGFloat, trailingInset: CGFloat = 0) -> CGFloat {
+        nonnegativeFinite((availableWidth - occupiedWidth(columns: columns, trailingInset: trailingInset)) / columns)
+    }
+
+    private func occupiedWidth(columns: CGFloat, trailingInset: CGFloat = 0) -> CGFloat {
+        let integral = floor(columns) == columns
+        let gaps = integral ? max(0, columns - 1) : floor(columns)
+        return insets.leading + (integral ? insets.trailing : 0) + gaps * spacing + trailingInset
+    }
+
+    private func fittingColumns(near estimate: CGFloat, minimum: CGFloat, availableWidth: CGFloat) -> CGFloat {
+        // A quotient can round either way at a breakpoint. Check neighboring
+        // counts against their required geometry, without a tolerance that could
+        // admit another column just below the breakpoint. This stays O(1).
+        for columns in [estimate + 1, estimate, estimate - 1] where columns.isFinite && columns >= 1 {
+            if occupiedWidth(columns: columns) + columns * minimum <= availableWidth {
+                return columns
+            }
+        }
+        return 1
     }
 
     func height(for itemSize: CGSize) -> CGFloat {

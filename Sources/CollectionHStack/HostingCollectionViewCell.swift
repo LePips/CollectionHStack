@@ -3,8 +3,19 @@ import SwiftUI
 
 final class HostingCollectionViewCell<Content: View>: UICollectionViewCell {
     private var hostingController: UIHostingController<AnyView>?
+    private(set) var representedID: AnyHashable?
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        ResizeAnimation.remove(from: layer)
+        representedID = nil
+    }
 
     func setup(view: Content, id: AnyHashable? = nil) {
+        if representedID != id {
+            ResizeAnimation.remove(from: layer)
+        }
+        representedID = id
         let root = AnyView(view.id(id))
         if let hostingController {
             hostingController.rootView = root

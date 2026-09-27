@@ -21,6 +21,7 @@ public struct CollectionHStack<
     var alignedLeadingElementID: Binding<ID?>?
     var allowBouncing: Bool
     var allowScrolling: Bool
+    var animatesResizing = false
     var clipsToBounds: Bool
     let data: Data
     var dataPrefix: Int?
@@ -38,6 +39,9 @@ public struct CollectionHStack<
     var proxy: CollectionHStackProxy
     var scrollBehavior: CollectionHStackScrollBehavior
     var initialElementID: ID?
+    #if os(tvOS)
+    var focusBehavior = CollectionHStackFocusBehavior()
+    #endif
     let viewProvider: (Element) -> Content
 
     init(
@@ -94,7 +98,7 @@ extension CollectionHStack: UIViewRepresentable {
     public typealias UIViewType = UICollectionHStack<Element, Data, ID, Content>
 
     public func makeUIView(context: Context) -> UIViewType {
-        UICollectionHStack(
+        let view = UICollectionHStack(
             id: id,
             alignedLeadingElementID: alignedLeadingElementID,
             clipsToBounds: clipsToBounds,
@@ -116,6 +120,8 @@ extension CollectionHStack: UIViewRepresentable {
             initialElementID: initialElementID,
             viewProvider: viewProvider
         )
+        view.configure(self)
+        return view
     }
 
     public func updateUIView(_ view: UIViewType, context: Context) {

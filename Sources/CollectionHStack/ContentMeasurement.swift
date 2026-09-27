@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Read the SwiftUI layout result before a hosting view rounds it to physical pixels.
-/// Caching a rounded ratio causes visible errors to accumulate during window resizing.
+/// Keep fractional dimensions accurate as the collection's width changes.
 final class ContentMeasurement {
     var size: CGSize = .zero
 }

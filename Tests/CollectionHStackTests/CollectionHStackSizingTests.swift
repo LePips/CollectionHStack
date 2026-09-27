@@ -8,7 +8,7 @@ import Testing
 struct CollectionHStackSizingTests {
 
     @Test
-    func contentMeasurementIsCachedAcrossResizeWidths() {
+    func contentMeasurementIsCachedForEachResizeWidth() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter)
 
@@ -18,8 +18,9 @@ struct CollectionHStackSizingTests {
         #expect(counter.value == 1)
 
         _ = stack.fittingSize(forWidth: 410)
+        _ = stack.fittingSize(forWidth: 210)
 
-        #expect(counter.value == 1)
+        #expect(counter.value == 2)
     }
 
     @Test
@@ -49,16 +50,16 @@ struct CollectionHStackSizingTests {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter)
         #expect(stack.fittingSize(forWidth: 210).height == 50)
-        #expect(stack.fittingSize(forWidth: 410).height == 100)
+        #expect(stack.fittingSize(forWidth: 410).height == 50)
         stack.update(
             newData: [1], alignedLeadingElementID: nil,
             layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0)
         )
         #expect(stack.fittingSize(forWidth: 410).height == 50)
-        #expect(counter.value == 2)
+        #expect(counter.value == 3)
         stack.traitCollectionDidChange(UITraitCollection(preferredContentSizeCategory: .accessibilityExtraExtraExtraLarge))
         #expect(stack.fittingSize(forWidth: 210).height == 50)
-        #expect(counter.value == 3)
+        #expect(counter.value == 4)
     }
 
     @Test
@@ -79,20 +80,20 @@ struct CollectionHStackSizingTests {
         #expect(stack.computeSizes(forWidth: 0).selfSize.height == 0)
         #expect(counter.value == 0)
         #expect(stack.computeSizes(forWidth: 210).selfSize.height == 50)
-        #expect(stack.computeSizes(forWidth: 410).selfSize.height == 100)
-        #expect(counter.value == 1)
+        #expect(stack.computeSizes(forWidth: 410).selfSize.height == 50)
+        #expect(counter.value == 2)
     }
 
     @Test
-    func zeroHeightDoesNotCacheInvalidProportions() {
+    func zeroHeightDoesNotCacheAnIncompleteMeasurement() {
         let counter = MeasurementCounter()
         counter.height = 0
         let stack = makeStack(counter: counter)
         #expect(stack.computeSizes(forWidth: 210).selfSize.height == 0)
         counter.height = 50
         #expect(stack.computeSizes(forWidth: 410).selfSize.height == 50)
-        #expect(stack.computeSizes(forWidth: 210).selfSize.height == 25)
-        #expect(counter.value == 2)
+        #expect(stack.computeSizes(forWidth: 210).selfSize.height == 50)
+        #expect(counter.value == 3)
     }
 
     @Test
@@ -106,12 +107,12 @@ struct CollectionHStackSizingTests {
             layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0)
         )
         #expect(stack.computeSizes(forWidth: 210).selfSize.height == 50)
-        #expect(stack.computeSizes(forWidth: 410).selfSize.height == 100)
-        #expect(counter.value == 1)
+        #expect(stack.computeSizes(forWidth: 410).selfSize.height == 50)
+        #expect(counter.value == 2)
     }
 
     @Test
-    func resizeDerivesProportionsFromMeasuredContent() {
+    func resizePreservesFixedContentHeight() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter)
 
@@ -119,8 +120,8 @@ struct CollectionHStackSizingTests {
         let resizedSize = stack.fittingSize(forWidth: 410)
 
         #expect(initialSize == CGSize(width: 210, height: 50))
-        #expect(resizedSize == CGSize(width: 410, height: 100))
-        #expect(counter.value == 1)
+        #expect(resizedSize == CGSize(width: 410, height: 50))
+        #expect(counter.value == 2)
     }
 
     @Test
@@ -130,6 +131,7 @@ struct CollectionHStackSizingTests {
         let stack = makeMutableAspectRatioStack(aspectRatio: aspectRatio, proxy: proxy)
 
         #expect(stack.fittingSize(forWidth: 210) == CGSize(width: 210, height: 150))
+        #expect(stack.fittingSize(forWidth: 410) == CGSize(width: 410, height: 300))
 
         aspectRatio.value = 1
         #expect(stack.fittingSize(forWidth: 410) == CGSize(width: 410, height: 300))
@@ -167,7 +169,7 @@ struct CollectionHStackSizingTests {
         #expect(initialItemSize.width == 100)
         #expect(abs(initialItemSize.height - 50) <= 0.001)
         #expect(abs(resizedItemSize.width - 100.1) <= 0.001)
-        #expect(abs(resizedItemSize.height - 50.05) <= 0.001)
+        #expect(abs(resizedItemSize.height - 50) <= 0.001)
     }
 
     @Test
@@ -194,7 +196,7 @@ struct CollectionHStackSizingTests {
         )
 
         #expect(proposedSize.width == 506)
-        #expect(abs(proposedSize.height - (50 * 248 / 182.5)) <= 0.001)
+        #expect(proposedSize.height == 50)
         #expect(liveSizeBeforeProposal.width == 182.5)
         #expect(liveSizeAfterProposal == liveSizeBeforeProposal)
         #expect(collectionView.flowLayout.itemSize == liveSizeBeforeProposal)
@@ -220,6 +222,35 @@ struct CollectionHStackSizingTests {
             sizeForItemAt: IndexPath(item: 0, section: 0)
         )
         #expect(liveSizeAfterBoundsChange.width == 248)
+    }
+
+    @Test
+    func fractionalMinimumWidthReusesMeasurementsForMatchingItemWidths() throws {
+        let counter = MeasurementCounter()
+        let stack = makeStack(counter: counter, layout: .minimumWidth(columnWidth: 100, rows: 2, columnFraction: 0.5))
+        let cases: [(CGFloat, CGFloat)] = [(210, 100), (209, 199 / 1.5), (160, 100), (159, 159), (210, 100)]
+        for (width, _) in cases {
+            #expect(stack.fittingSize(forWidth: width).height == 110)
+        }
+        #expect(counter.value == 3)
+        for (width, itemWidth) in cases {
+            let size = stack.fittingSize(forWidth: width)
+            #expect(size.height == 110)
+            stack.bounds = CGRect(origin: .zero, size: size)
+            stack.layoutSubviews()
+            let collection = try #require(stack.subviews.compactMap { $0 as? UICollectionView }.first)
+            let attributes = try #require(collection.collectionViewLayout.layoutAttributesForItem(at: IndexPath(item: 0, section: 0)))
+            #expect(abs(attributes.size.width - itemWidth) < 0.001)
+            #expect(abs(attributes.size.height - 50) < 0.001)
+        }
+    }
+
+    @Test
+    func changingOnlyTheMinimumWidthFractionInvalidatesSizing() {
+        let stack = makeStack(counter: MeasurementCounter(), layout: .minimumWidth(columnWidth: 100, rows: 1))
+        #expect(stack.fittingSize(forWidth: 160).height == 50)
+        stack.update(newData: [0], alignedLeadingElementID: nil, layout: .minimumWidth(columnWidth: 100, rows: 1, columnFraction: 0.5))
+        #expect(stack.computeSizes(forWidth: 160).itemSize.width == 100)
     }
 
     @Test
@@ -252,14 +283,14 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func largeCollectionResizeReusesInitialMeasurement() {
+    func largeCollectionResizeMeasuresOnlyOneItemPerWidth() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter, data: Array(0 ..< 10000))
         for step in 0 ..< 120 {
             let width = CGFloat(320 + step * 8)
             _ = stack.fittingSize(forWidth: width)
         }
-        #expect(counter.value == 1, "Resizing must reuse the initial content measurement")
+        #expect(counter.value == 120, "Resizing must measure one representative item per width, regardless of the data count")
     }
 
     @Test

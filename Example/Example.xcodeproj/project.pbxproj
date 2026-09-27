@@ -7,22 +7,29 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F0C050000000000000000001 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1DDE97E2B107BE2000D96D7 /* CollectionHStack */; };
 		E1DDE97D2B107AA6000D96D7 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1DDE97C2B107AA6000D96D7 /* CollectionHStack */; };
 		E1DDE97F2B107BE2000D96D7 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = E1DDE97E2B107BE2000D96D7 /* CollectionHStack */; };
 		0FD479F944D8A5D5E9527F16 /* CollectionHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 9A531FAA2FDAAE9F28A43BB7 /* CollectionHStack */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F0C051000000000000000002 /* tvOSFocusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = tvOSFocusUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F0C050000000000000000002 /* tvOSFocusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = tvOSFocusTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E15BAE062B08ADF00086FC31 /* iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1D3C3712B09841A00BFA270 /* tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tvOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1DEDDF647A2195080BD7843F /* CollectionHStackExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CollectionHStackExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		F0C051000000000000000003 /* UITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = UITests; sourceTree = "<group>"; };
+		F0C050000000000000000003 /* Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tests; sourceTree = "<group>"; };
 		66A5AF2FCA1BE52AE2F8B26C /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Shared; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F0C051000000000000000004 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		F0C050000000000000000004 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (F0C050000000000000000001 /* CollectionHStack in Frameworks */,); runOnlyForDeploymentPostprocessing = 0; };
 		E15BAE032B08ADF00086FC31 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -54,6 +61,8 @@
 			isa = PBXGroup;
 			children = (
 				66A5AF2FCA1BE52AE2F8B26C /* Shared */,
+				F0C050000000000000000003 /* Tests */,
+				F0C051000000000000000003 /* UITests */,
 				E15BAE072B08ADF00086FC31 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -64,6 +73,8 @@
 				1DEDDF647A2195080BD7843F /* CollectionHStackExample.app */,
 				E15BAE062B08ADF00086FC31 /* iOS.app */,
 				E1D3C3712B09841A00BFA270 /* tvOS.app */,
+				F0C050000000000000000002 /* tvOSFocusTests.xctest */,
+				F0C051000000000000000002 /* tvOSFocusUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -71,6 +82,31 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		F0C051000000000000000005 /* tvOSFocusUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F0C051000000000000000006;
+			buildPhases = (F0C051000000000000000007 /* Sources */, F0C051000000000000000004 /* Frameworks */,);
+			buildRules = ();
+			dependencies = (F0C050000000000000000008,);
+			fileSystemSynchronizedGroups = (F0C051000000000000000003 /* UITests */,);
+			name = tvOSFocusUITests;
+			productName = tvOSFocusUITests;
+			productReference = F0C051000000000000000002 /* tvOSFocusUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		F0C050000000000000000005 /* tvOSFocusTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F0C050000000000000000006;
+			buildPhases = (F0C050000000000000000007 /* Sources */, F0C050000000000000000004 /* Frameworks */,);
+			buildRules = ();
+			dependencies = (F0C050000000000000000008,);
+			fileSystemSynchronizedGroups = (F0C050000000000000000003 /* Tests */,);
+			name = tvOSFocusTests;
+			packageProductDependencies = (E1DDE97E2B107BE2000D96D7 /* CollectionHStack */,);
+			productName = tvOSFocusTests;
+			productReference = F0C050000000000000000002 /* tvOSFocusTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		E15BAE052B08ADF00086FC31 /* iOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E15BAE142B08ADF10086FC31 /* Build configuration list for PBXNativeTarget "iOS" */;
@@ -175,6 +211,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				F0C051000000000000000005 /* tvOSFocusUITests */,
+				F0C050000000000000000005 /* tvOSFocusTests */,
 				F29FA56DDD35E612E2AA4ED4 /* macOS */,
 				E15BAE052B08ADF00086FC31 /* iOS */,
 				E1D3C3702B09841A00BFA270 /* tvOS */,
@@ -207,6 +245,8 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F0C051000000000000000007 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		F0C050000000000000000007 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		E15BAE022B08ADF00086FC31 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -231,6 +271,72 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		F0C051000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = TY84JMYEFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.CollectionHStackExample.tvOSFocusUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_TARGET_NAME = tvOS;
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Debug;
+		};
+		F0C05100000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = TY84JMYEFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.CollectionHStackExample.tvOSFocusUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_TARGET_NAME = tvOS;
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Release;
+		};
+		F0C050000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = TY84JMYEFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.CollectionHStackExample.tvOSFocusTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tvOS.app/tvOS";
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Debug;
+		};
+		F0C05000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = TY84JMYEFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.CollectionHStackExample.tvOSFocusTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tvOS.app/tvOS";
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Release;
+		};
 		E15BAE122B08ADF10086FC31 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -513,6 +619,8 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F0C051000000000000000006 = {isa = XCConfigurationList; buildConfigurations = (F0C051000000000000000009 /* Debug */, F0C05100000000000000000A /* Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		F0C050000000000000000006 = {isa = XCConfigurationList; buildConfigurations = (F0C050000000000000000009 /* Debug */, F0C05000000000000000000A /* Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		E15BAE012B08ADF00086FC31 /* Build configuration list for PBXProject "Example" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -572,6 +680,14 @@
 			productName = CollectionHStack;
 		};
 /* End XCSwiftPackageProductDependency section */
+
+/* Begin PBXContainerItemProxy section */
+		F0C05000000000000000000B = {isa = PBXContainerItemProxy; containerPortal = E15BADFE2B08ADF00086FC31 /* Project object */; proxyType = 1; remoteGlobalIDString = E1D3C3702B09841A00BFA270; remoteInfo = tvOS; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		F0C050000000000000000008 = {isa = PBXTargetDependency; target = E1D3C3702B09841A00BFA270 /* tvOS */; targetProxy = F0C05000000000000000000B; };
+/* End PBXTargetDependency section */
 	};
 	rootObject = E15BADFE2B08ADF00086FC31 /* Project object */;
 }

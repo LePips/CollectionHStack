@@ -40,18 +40,20 @@ public extension CollectionHStack {
         )
     }
 
-    /// minWidth
+    /// Fits whole columns, optionally showing `columnFraction` of the next column.
+    /// Use 0.5 for half columns; zero (the default) keeps whole columns only.
     init(
         uniqueElements: Data,
         id: KeyPath<Element, ID>,
         minWidth: CGFloat,
+        columnFraction: CGFloat = 0,
         rows: Int = 1,
         @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: id,
             data: uniqueElements,
-            layout: .minimumWidth(columnWidth: minWidth, rows: rows),
+            layout: .minimumWidth(columnWidth: minWidth, rows: rows, columnFraction: columnFraction),
             viewProvider: content
         )
     }
@@ -120,17 +122,19 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
         )
     }
 
-    /// minWidth
+    /// Fits whole columns, optionally showing `columnFraction` of the next column.
+    /// Use 0.5 for half columns; zero (the default) keeps whole columns only.
     init(
         uniqueElements: Data,
         minWidth: CGFloat,
+        columnFraction: CGFloat = 0,
         rows: Int = 1,
         @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.id,
             data: uniqueElements,
-            layout: .minimumWidth(columnWidth: minWidth, rows: rows),
+            layout: .minimumWidth(columnWidth: minWidth, rows: rows, columnFraction: columnFraction),
             viewProvider: content
         )
     }
@@ -208,17 +212,19 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
         )
     }
 
-    /// minWidth
+    /// Fits whole columns, optionally showing `columnFraction` of the next column.
+    /// Use 0.5 for half columns; zero (the default) keeps whole columns only.
     init(
         count: Int,
         minWidth: CGFloat,
+        columnFraction: CGFloat = 0,
         rows: Int = 1,
         @ViewBuilder content: @escaping (Element) -> Content
     ) {
         self.init(
             id: \.self,
             data: Array(0 ..< count),
-            layout: .minimumWidth(columnWidth: minWidth, rows: rows),
+            layout: .minimumWidth(columnWidth: minWidth, rows: rows, columnFraction: columnFraction),
             viewProvider: content
         )
     }

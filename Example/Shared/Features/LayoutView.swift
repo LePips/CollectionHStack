@@ -6,6 +6,9 @@ struct LayoutView: View {
     @State
     var minWidth: CGFloat = 120
 
+    @State
+    var columnFraction: CGFloat = 0.5
+
     @StateObject
     var proxy: CollectionHStackProxy = .init()
 
@@ -54,7 +57,7 @@ struct LayoutView: View {
                 HStack {
                     HeaderPopover(
                         title: "Minimum Width",
-                        description: "Each column must have the given minimum width"
+                        description: "Fit as many whole or partial columns as possible at the minimum width. Half columns reduce item-size changes as the window resizes. A narrower container fits one item."
                     )
 
                     Spacer()
@@ -71,7 +74,8 @@ struct LayoutView: View {
                     ScrollView {
                         CollectionHStack(
                             count: 20,
-                            minWidth: minWidth
+                            minWidth: minWidth,
+                            columnFraction: columnFraction
                         ) { _ in
                             Group {
                                 Color.blue
@@ -87,6 +91,14 @@ struct LayoutView: View {
 
                 ExampleWidthControl(value: $minWidth, range: 70 ... 150, step: 2)
                     .padding(.horizontal, 15)
+
+                Picker("Partial column", selection: $columnFraction) {
+                    Text("Whole only").tag(CGFloat(0))
+                    Text("Half").tag(CGFloat(0.5))
+                    Text("Quarter").tag(CGFloat(0.25))
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 15)
 
                 // column trailing inset
 

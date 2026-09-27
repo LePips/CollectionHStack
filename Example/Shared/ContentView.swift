@@ -89,12 +89,22 @@ private enum ExamplePage: String, Identifiable {
     case playground = "Playground"
     case layout = "Layout"
     case scrollBehavior = "Scroll Behavior"
+    #if os(tvOS)
+    case focusBehavior = "Focus Behavior"
+    #endif
     case other = "Other"
     case carousels = "Carousels"
     case appStoreApps = "App Store Apps"
     case musicGenre = "Apple Music Genre"
 
-    static let features: [Self] = [.playground, .layout, .scrollBehavior, .other]
+    static var features: [Self] {
+        #if os(tvOS)
+        [.playground, .focusBehavior, .layout, .scrollBehavior, .other]
+        #else
+        [.playground, .layout, .scrollBehavior, .other]
+        #endif
+    }
+
     static let examples: [Self] = [.carousels, .appStoreApps, .musicGenre]
 
     var id: Self {
@@ -106,6 +116,9 @@ private enum ExamplePage: String, Identifiable {
         case .playground: "slider.horizontal.3"
         case .layout: "rectangle.split.3x1"
         case .scrollBehavior: "arrow.left.and.right"
+        #if os(tvOS)
+        case .focusBehavior: "scope"
+        #endif
         case .other: "ellipsis.circle"
         case .carousels: "rectangle.stack"
         case .appStoreApps: "square.grid.2x2"
@@ -119,6 +132,9 @@ private enum ExamplePage: String, Identifiable {
         case .playground: PlaygroundView()
         case .layout: LayoutView()
         case .scrollBehavior: ScrollBehaviorView()
+        #if os(tvOS)
+        case .focusBehavior: FocusBehaviorView()
+        #endif
         case .other: OtherBehaviorView()
         case .carousels: CarouselView()
         case .appStoreApps: AppStoreAppsView()
