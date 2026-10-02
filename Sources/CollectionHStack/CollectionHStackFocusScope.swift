@@ -15,11 +15,29 @@ public struct CollectionHStackFocusScope<Content: View>: UIViewControllerReprese
     }
 
     public func makeUIViewController(context: Context) -> UIHostingController<AnyView> {
-        CollectionFocusScopeController(rootView: AnyView(content.environment(\.self, context.environment)))
+        let controller = CollectionFocusScopeController(rootView: AnyView(content.environment(\.self, context.environment)))
+        // The surrounding SwiftUI layout has already accounted for safe areas.
+        controller.safeAreaRegions = []
+        controller.view.backgroundColor = nil
+        return controller
     }
 
     public func updateUIViewController(_ controller: UIHostingController<AnyView>, context: Context) {
         controller.rootView = AnyView(content.environment(\.self, context.environment))
+    }
+
+    public func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        uiViewController: UIHostingController<AnyView>,
+        context: Context
+    ) -> CGSize? {
+        guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
+        // Scroll views leave their scrolling axis unspecified. Ask the hosted
+        // content for its height instead of accepting UIKit's zero-height default.
+        return uiViewController.sizeThatFits(in: CGSize(
+            width: width,
+            height: proposal.height ?? .greatestFiniteMagnitude
+        ))
     }
 }
 
