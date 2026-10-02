@@ -1,6 +1,16 @@
+import Combine
 import SwiftUI
 
 public extension CollectionHStack {
+
+    /// Remeasures items when the publisher emits, updating the stack's height.
+    ///
+    /// Apply after collection-specific modifiers.
+    func remeasureItems<Trigger: Publisher>(on publisher: Trigger) -> some View where Trigger.Failure == Never {
+        ItemRemeasurementView(publisher: publisher) { revision in
+            copy(modifying: \.itemMeasurementRevision, to: revision)
+        }
+    }
 
     // TODO: probably remove behavior
 //    func _animatesResizing(_ enabled: Bool) -> Self {

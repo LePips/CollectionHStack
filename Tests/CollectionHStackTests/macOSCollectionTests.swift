@@ -7,6 +7,55 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct MacOSCollectionHStackTests {
+
+    @Test(arguments: 0 ..< 3)
+    func measurementRevisionRefreshesCachedWidthsAndIntrinsicHeight(layoutIndex: Int) {
+        let layout: CollectionHStackLayout = [
+            .grid(columns: 2, rows: 2, columnTrailingInset: 0),
+            .minimumWidth(columnWidth: 100, rows: 2),
+            .selfSizingSameSize(rows: 2),
+        ][layoutIndex]
+        var measurements = 0
+        func configuration(height: CGFloat, revision: Int) -> CollectionHStack<Int, [Int], Int, some View> {
+            CollectionHStack(uniqueElements: [0], layout: layout) { _ in
+                measurements += 1
+                return Color.blue
+                    .frame(width: 100, height: height)
+            }
+            .insets(horizontal: 0)
+            .itemSpacing(10)
+            .copy(modifying: \.itemMeasurementRevision, to: revision)
+        }
+        let view = NSCollectionHStack(configuration: configuration(height: 50, revision: 0))
+        defer {
+            view.disconnect()
+        }
+        #expect(view.fittingSize(forWidth: 210).height == 110)
+        #expect(view.fittingSize(forWidth: 410).height == 110)
+        view.frame = CGRect(x: 0, y: 0, width: 210, height: 110)
+        view.layoutSubtreeIfNeeded()
+
+        view.update(
+            configuration: configuration(height: 75, revision: 1),
+            isScrollEnabled: true,
+            dynamicTypeSize: .large
+        )
+        #expect(view.fittingSize(forWidth: 210).height == 160)
+        #expect(view.fittingSize(forWidth: 410).height == 160)
+        view.layoutSubtreeIfNeeded()
+        #expect(view.intrinsicContentSize.height == 160)
+        #expect(view.collectionLayout.itemSize.height == 75)
+
+        view.update(
+            configuration: configuration(height: 75, revision: 1),
+            isScrollEnabled: true,
+            dynamicTypeSize: .large
+        )
+        let count = measurements
+        _ = view.fittingSize(forWidth: 210)
+        #expect(measurements == count, "The same revision reuses measurements")
+    }
+
     @Test
     func fractionalMinimumWidthCachesMeasurementsAndRefreshesWhenFractionChanges() {
         var measurements = 0

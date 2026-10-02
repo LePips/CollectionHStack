@@ -188,6 +188,7 @@ public final class NSCollectionHStack<
         }
         let changedSizing = configuration.layout != new.layout || configuration.insets != new.insets
             || configuration.itemSpacing != new.itemSpacing || self.dynamicTypeSize != dynamicTypeSize
+            || configuration.itemMeasurementRevision != new.itemMeasurementRevision
         let changedCarousel = configuration.isCarousel != new.isCarousel
         if configuration.proxy !== new.proxy, configuration.proxy.collectionView === self {
             configuration.proxy.collectionView = nil

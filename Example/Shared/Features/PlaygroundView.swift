@@ -1,18 +1,47 @@
 import CollectionHStack
+import Combine
 import SwiftUI
 
 struct PlaygroundView: View {
-    @State private var showsControls = false
-    @State private var columns = usesCompactExampleLayout ? 3 : 5
-    @State private var rows = 1
-    @State private var itemCount = 100
-    @State private var behavior: CollectionHStackScrollBehavior = .continuousLeadingEdge
-    @State private var carousel = false
-    @State private var minimumWidth: CGFloat = 140
-    @State private var initialPresentation = 0
-    @State private var isInitialCollectionLoaded = false
-    @State private var initialElementID: Int? = 40
-    @StateObject private var proxy = CollectionHStackProxy()
+
+    @State
+    private var showsControls = false
+
+    @State
+    private var columns = usesCompactExampleLayout ? 3 : 5
+
+    @State
+    private var rows = 1
+
+    @State
+    private var itemCount = 100
+
+    @State
+    private var behavior: CollectionHStackScrollBehavior = .continuousLeadingEdge
+
+    @State
+    private var carousel = false
+
+    @State
+    private var showsTitles = false
+
+    @State
+    private var itemSizeChanges = PassthroughSubject<Void, Never>()
+
+    @State
+    private var minimumWidth: CGFloat = 140
+
+    @State
+    private var initialPresentation = 0
+
+    @State
+    private var isInitialCollectionLoaded = false
+
+    @State
+    private var initialElementID: Int? = 40
+
+    @StateObject
+    private var proxy = CollectionHStackProxy()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -100,6 +129,9 @@ struct PlaygroundView: View {
             }
         }
         .navigationTitle("Playground")
+        .onChange(of: showsTitles) {
+            itemSizeChanges.send()
+        }
         .toolbar {
             ToolbarItemGroup {
                 Button("Controls", systemImage: "slider.horizontal.3") {
@@ -127,22 +159,33 @@ struct PlaygroundView: View {
     @ViewBuilder
     private var mainCollection: some View {
         let collection = CollectionHStack(count: itemCount, columns: columns, rows: rows) { index in
-            card(index)
-                .aspectRatio(1.6, contentMode: .fill)
+            VStack(alignment: .leading, spacing: 8) {
+                card(index)
+                    .aspectRatio(1.6, contentMode: .fill)
+                if showsTitles {
+                    Text("Item \(index + 1)")
+                        .font(.caption)
+                        .lineLimit(1)
+                }
+            }
         }
         .scrollBehavior(behavior)
         .proxy(proxy)
 
         if carousel {
-            collection.asCarousel()
+            collection
+                .asCarousel()
+                .remeasureItems(on: itemSizeChanges)
         } else {
             collection
+                .remeasureItems(on: itemSizeChanges)
         }
     }
 
     private var controls: some View {
         Form {
             Section("Layout") {
+                Toggle("Show titles", isOn: $showsTitles)
                 Picker("Columns", selection: $columns) {
                     ForEach(1 ... 8, id: \.self) { Text("\($0)").tag($0) }
                 }

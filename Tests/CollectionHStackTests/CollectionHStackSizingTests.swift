@@ -7,6 +7,47 @@ import Testing
 @MainActor
 struct CollectionHStackSizingTests {
 
+    @Test(arguments: 0 ..< 3)
+    func measurementRevisionRefreshesCachedWidthsAndIntrinsicHeight(layoutIndex: Int) throws {
+        let layout: CollectionHStackLayout = [
+            .grid(columns: 2, rows: 2, columnTrailingInset: 0),
+            .minimumWidth(columnWidth: 100, rows: 2),
+            .selfSizingSameSize(rows: 2),
+        ][layoutIndex]
+        let original = MeasurementCounter()
+        let replacement = MeasurementCounter()
+        replacement.height = 75
+        let stack = makeStack(counter: original, layout: layout)
+        #expect(stack.fittingSize(forWidth: 210).height == 110)
+        #expect(stack.fittingSize(forWidth: 410).height == 110)
+        stack.frame = CGRect(x: 0, y: 0, width: 210, height: 110)
+        stack.layoutIfNeeded()
+
+        stack.update(
+            newData: [0],
+            alignedLeadingElementID: nil,
+            layout: layout,
+            itemMeasurementRevision: 1,
+            viewProvider: { _ in MeasuredItem(counter: replacement) }
+        )
+        #expect(stack.fittingSize(forWidth: 210).height == 160)
+        #expect(stack.fittingSize(forWidth: 410).height == 160)
+        stack.layoutIfNeeded()
+        #expect(stack.intrinsicContentSize.height == 160)
+        let collection = try #require(stack.subviews.compactMap { $0 as? UICollectionView }.first)
+        #expect(collection.flowLayout.itemSize.height == 75)
+
+        stack.update(
+            newData: [0],
+            alignedLeadingElementID: nil,
+            layout: layout,
+            itemMeasurementRevision: 1
+        )
+        let measurements = replacement.value
+        _ = stack.fittingSize(forWidth: 210)
+        #expect(replacement.value == measurements, "The same revision reuses measurements")
+    }
+
     @Test
     func contentMeasurementIsCachedForEachResizeWidth() {
         let counter = MeasurementCounter()

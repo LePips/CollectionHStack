@@ -93,7 +93,6 @@ private enum ExamplePage: String, Identifiable {
     case focusBehavior = "Focus Behavior"
     #endif
     case other = "Other"
-    case carousels = "Carousels"
     case appStoreApps = "App Store Apps"
     case musicGenre = "Apple Music Genre"
 
@@ -105,7 +104,7 @@ private enum ExamplePage: String, Identifiable {
         #endif
     }
 
-    static let examples: [Self] = [.carousels, .appStoreApps, .musicGenre]
+    static let examples: [Self] = [.appStoreApps, .musicGenre]
 
     var id: Self {
         self
@@ -120,7 +119,6 @@ private enum ExamplePage: String, Identifiable {
         case .focusBehavior: "scope"
         #endif
         case .other: "ellipsis.circle"
-        case .carousels: "rectangle.stack"
         case .appStoreApps: "square.grid.2x2"
         case .musicGenre: "music.note"
         }
@@ -136,7 +134,6 @@ private enum ExamplePage: String, Identifiable {
         case .focusBehavior: FocusBehaviorView()
         #endif
         case .other: OtherBehaviorView()
-        case .carousels: CarouselView()
         case .appStoreApps: AppStoreAppsView()
         case .musicGenre: MusicGenreView()
         }

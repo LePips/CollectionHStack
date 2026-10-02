@@ -63,6 +63,7 @@ public class UICollectionHStack<
     private var data: Data
     private var insets: EdgeInsets
     private var itemSpacing: CGFloat
+    private var itemMeasurementRevision = 0
     private var itemSizeCache = ItemSizeCache()
     private var itemSize: CGSize?
     private var layout: CollectionHStackLayout
@@ -560,6 +561,7 @@ public class UICollectionHStack<
         layout newLayout: CollectionHStackLayout,
         insets newInsets: EdgeInsets? = nil,
         itemSpacing newItemSpacing: CGFloat? = nil,
+        itemMeasurementRevision: Int = 0,
         viewProvider: ((Element) -> Content)? = nil
     ) {
 
@@ -569,11 +571,13 @@ public class UICollectionHStack<
         let itemSpacing = newItemSpacing ?? self.itemSpacing
         let sizingConfigurationChanged = newLayout != layout
             || insets != self.insets || itemSpacing != self.itemSpacing
+            || itemMeasurementRevision != self.itemMeasurementRevision
 
         self.dataPrefix = dataPrefix
         layout = newLayout
         self.insets = insets
         self.itemSpacing = itemSpacing
+        self.itemMeasurementRevision = itemMeasurementRevision
         if let viewProvider {
             self.viewProvider = viewProvider
         }

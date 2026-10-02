@@ -213,10 +213,18 @@ private final class ResizeFixture {
 
     init(count: Int, animated: Bool, fraction: CGFloat = 0) {
         let counter = counter
-        configuration = CollectionHStack(uniqueElements: 0 ..< count, id: \.self, minWidth: 100, columnFraction: fraction) { _ in
+        configuration = CollectionHStack(
+            uniqueElements: 0 ..< count,
+            id: \.self,
+            minWidth: 100,
+            columnFraction: fraction
+        ) { _ in
             counter.value += 1
             return AnyView(Color.blue.aspectRatio(2, contentMode: .fit))
-        }.insets(horizontal: 0).itemSpacing(10).animatesResizing(animated)
+        }
+        .insets(horizontal: 0)
+        .itemSpacing(10)
+        .copy(modifying: \.animatesResizing, to: animated)
         #if os(macOS)
         _ = NSApplication.shared
         stack = NSCollectionHStack(configuration: configuration)
@@ -246,7 +254,7 @@ private final class ResizeFixture {
     }
 
     func setAnimated(_ enabled: Bool) {
-        configuration = configuration.animatesResizing(enabled)
+        configuration = configuration.copy(modifying: \.animatesResizing, to: enabled)
         #if os(macOS)
         stack.update(configuration: configuration, isScrollEnabled: true, dynamicTypeSize: .large)
         #else
@@ -256,9 +264,14 @@ private final class ResizeFixture {
 
     func setMinimumWidth(_ width: CGFloat) {
         configuration = CollectionHStack(
-            uniqueElements: configuration.data, id: \.self, minWidth: width,
+            uniqueElements: configuration.data,
+            id: \.self,
+            minWidth: width,
             content: configuration.viewProvider
-        ).insets(horizontal: 0).itemSpacing(10).animatesResizing(configuration.animatesResizing)
+        )
+        .insets(horizontal: 0)
+        .itemSpacing(10)
+        .copy(modifying: \.animatesResizing, to: configuration.animatesResizing)
         #if os(macOS)
         stack.update(configuration: configuration, isScrollEnabled: true, dynamicTypeSize: .large)
         #else

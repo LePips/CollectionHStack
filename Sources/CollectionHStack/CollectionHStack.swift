@@ -28,6 +28,7 @@ public struct CollectionHStack<
     let didScrollToItems: ([Element]) -> Void
     var insets: EdgeInsets
     var isCarousel: Bool
+    var itemMeasurementRevision = 0
     var itemSpacing: CGFloat
     let layout: CollectionHStackLayout
     var onReachedLeadingEdge: () -> Void
@@ -135,6 +136,7 @@ extension CollectionHStack: UIViewRepresentable {
             layout: layout,
             insets: insets,
             itemSpacing: itemSpacing,
+            itemMeasurementRevision: itemMeasurementRevision,
             viewProvider: viewProvider
         )
     }

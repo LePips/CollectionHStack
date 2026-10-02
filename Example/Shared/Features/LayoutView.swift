@@ -1,7 +1,14 @@
 import CollectionHStack
+import Combine
 import SwiftUI
 
 struct LayoutView: View {
+
+    @State
+    private var showsTitles = false
+
+    @State
+    private var itemSizeChanges = PassthroughSubject<Void, Never>()
 
     @State
     var minWidth: CGFloat = 120
@@ -156,15 +163,24 @@ struct LayoutView: View {
                 .padding(.top, 30)
                 .padding(.leading, 15)
 
-                CollectionHStack(count: 20) { _ in
-                    Group {
+                Toggle("Show titles", isOn: $showsTitles)
+                    .padding(.horizontal, 15)
+
+                CollectionHStack(count: 20) { index in
+                    VStack(alignment: .leading, spacing: 8) {
                         Color.blue
                             .aspectRatio(2 / 3, contentMode: .fill)
                             .frame(height: 200)
                             .cornerRadius(5)
+                        if showsTitles {
+                            Text("Item \(index + 1)")
+                                .font(.caption)
+                                .lineLimit(1)
+                        }
                     }
                     .exampleFocusable()
                 }
+                .remeasureItems(on: itemSizeChanges)
 
                 // variadic widths
 
@@ -211,5 +227,8 @@ struct LayoutView: View {
             }
         }
         .navigationTitle("Layout")
+        .onChange(of: showsTitles) {
+            itemSizeChanges.send()
+        }
     }
 }
