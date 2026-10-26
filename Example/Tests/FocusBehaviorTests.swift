@@ -7,7 +7,7 @@ import Testing
 @MainActor
 struct FocusBehaviorTests {
     @Test
-    func scopePreservesTheSwiftUIEnvironment() async throws {
+    func `scope preserves the swift UI environment`() async throws {
         var observedLocale: String?
         let controller = UIHostingController(rootView:
             CollectionHStackFocusScope {
@@ -25,7 +25,7 @@ struct FocusBehaviorTests {
     }
 
     @Test
-    func explicitChildFocusIsNotOverridden() async throws {
+    func `explicit child focus is not overridden`() async throws {
         let harness = FocusHarness(initial: .leading, returning: .leading)
         defer { harness.close() }
         try await harness.start()
@@ -35,7 +35,7 @@ struct FocusBehaviorTests {
     }
 
     @Test
-    func leadingEntryPreservesNavigationAndReturnsToCurrentLeadingItem() async throws {
+    func `leading entry preserves navigation and returns to current leading item`() async throws {
         let harness = FocusHarness(initial: .leading, returning: .leading)
         defer { harness.close() }
         try await harness.start()
@@ -54,7 +54,7 @@ struct FocusBehaviorTests {
     }
 
     @Test
-    func automaticEntryAndReturnKeepTheProposedItem() async throws {
+    func `automatic entry and return keep the proposed item`() async throws {
         let harness = FocusHarness()
         defer { harness.close() }
         try await harness.start()
@@ -66,7 +66,7 @@ struct FocusBehaviorTests {
     }
 
     @Test(arguments: [CollectionHStackFocusBehavior.Initial.automatic, .leading])
-    func returningRestoresLastItemEvenAfterScrollingAway(initial: CollectionHStackFocusBehavior.Initial) async throws {
+    func `returning restores last item even after scrolling away`(initial: CollectionHStackFocusBehavior.Initial) async throws {
         let harness = FocusHarness(initial: initial, returning: .lastFocused)
         defer { harness.close() }
         try await harness.start()
@@ -87,7 +87,7 @@ struct FocusBehaviorTests {
     }
 
     @Test
-    func rememberedFocusFollowsIdentityThroughReordering() async throws {
+    func `remembered focus follows identity through reordering`() async throws {
         let harness = FocusHarness(returning: .lastFocused)
         defer { harness.close() }
         try await harness.start()
@@ -103,7 +103,7 @@ struct FocusBehaviorTests {
     }
 
     @Test(arguments: [false, true])
-    func missingRememberedElementFallsBackToLeading(usePrefix: Bool) async throws {
+    func `missing remembered element falls back to leading`(usePrefix: Bool) async throws {
         let harness = FocusHarness(returning: .lastFocused)
         defer { harness.close() }
         try await harness.start()
@@ -122,7 +122,7 @@ struct FocusBehaviorTests {
     }
 
     @Test
-    func runtimePolicyChangePreservesHistoryWithoutMovingCurrentFocus() async throws {
+    func `runtime policy change preserves history without moving current focus`() async throws {
         let harness = FocusHarness()
         defer { harness.close() }
         try await harness.start()
@@ -138,7 +138,7 @@ struct FocusBehaviorTests {
     }
 
     @Test
-    func leadingSkipsDisabledContent() async throws {
+    func `leading skips disabled content`() async throws {
         let harness = FocusHarness(initial: .leading, disabledIDs: [0])
         defer { harness.close() }
         try await harness.start()
@@ -148,7 +148,7 @@ struct FocusBehaviorTests {
     }
 
     @Test
-    func leadingUsesInitialScrollPositionAndTopRow() async throws {
+    func `leading uses initial scroll position and top row`() async throws {
         let harness = FocusHarness(initial: .leading, rows: 2, initialID: 8)
         defer { harness.close() }
         try await harness.start()
@@ -158,7 +158,7 @@ struct FocusBehaviorTests {
     }
 
     @Test
-    func emptyCollectionCanReceiveDataBeforeItsFirstFocus() async throws {
+    func `empty collection can receive data before its first focus`() async throws {
         let harness = FocusHarness(initial: .leading, data: [])
         defer { harness.close() }
         try await harness.start()
@@ -170,7 +170,7 @@ struct FocusBehaviorTests {
     }
 
     @Test
-    func carouselRemembersTheFocusedOccurrence() async throws {
+    func `carousel remembers the focused occurrence`() async throws {
         let harness = FocusHarness(returning: .lastFocused, data: [0, 1, 2, 3], carousel: true)
         defer { harness.close() }
         try await harness.start()
@@ -210,8 +210,11 @@ private final class FocusHarness {
         var configuration = Configuration(uniqueElements: data, id: \.self, columns: 4, rows: rows) { id in
             FocusTestCard(id: id, disabled: disabledIDs.contains(id))
         }
-        .insets(horizontal: 40).itemSpacing(20).scrollBehavior(.continuousLeadingEdge)
-        .initialElement(id: initialID).focusBehavior(initial: initial, returning: returning)
+        .insets(horizontal: 40)
+        .itemSpacing(20)
+        .scrollBehavior(.continuousLeadingEdge)
+        .initialElement(id: initialID)
+        .focusBehavior(initial: initial, returning: returning)
         if carousel {
             configuration = configuration.asCarousel()
         }
@@ -344,7 +347,8 @@ private struct FocusTestCard: View {
 }
 
 private struct ScopeEnvironmentProbe: View {
-    @Environment(\.locale) private var locale
+    @Environment(\.locale)
+    private var locale
     let observed: (String) -> Void
 
     var body: some View {

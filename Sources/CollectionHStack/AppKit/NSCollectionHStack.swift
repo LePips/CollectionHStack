@@ -26,6 +26,7 @@ extension CollectionHStack: NSViewRepresentable {
 
     public func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSViewType, context: Context) -> CGSize? {
         guard let width = proposal.width, width.isFiniteAndPositive else { return nil }
+
         return nsView.fittingSize(forWidth: width)
     }
 
@@ -112,6 +113,7 @@ public final class NSCollectionHStack<
         ])
         dataSource = NSCollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collection, path, id in
             guard let self, let element = self.element(at: path.item, id: id.id) else { return nil }
+
             let item = collection.makeItem(withIdentifier: .init("content"), for: path) as! HostingCollectionViewItem
             item.configure(self.configuration.viewProvider(element), id: AnyHashable(id))
             return item
@@ -125,6 +127,7 @@ public final class NSCollectionHStack<
         )
         scrollView.willScroll = { [weak self] in
             guard let self else { return }
+
             self.settleWork?.cancel()
             self.cancelScrollAnimation()
             if self.gestureStart == nil {
@@ -149,6 +152,7 @@ public final class NSCollectionHStack<
     override public func layout() {
         super.layout()
         guard bounds.width.isFiniteAndPositive else { return }
+
         if appliedWidth != bounds.width {
             applyLayout(forWidth: bounds.width)
             scheduleSettle(snap: false)
@@ -162,6 +166,7 @@ public final class NSCollectionHStack<
 
     private func evaluateInitialElementIfNeeded() {
         guard !hasEvaluatedInitialElement, let initialElementID = configuration.initialElementID, ids.isNotEmpty else { return }
+
         hasEvaluatedInitialElement = true
         pendingInitialElementID = ids.contains(initialElementID) ? initialElementID : nil
     }
@@ -174,6 +179,7 @@ public final class NSCollectionHStack<
         // Consume before scrolling, which can synchronously trigger another layout.
         pendingInitialElementID = nil
         guard let index = ids.firstIndex(of: target) else { return }
+
         scrollTo(index: index, animated: false)
     }
 
@@ -259,6 +265,7 @@ public final class NSCollectionHStack<
 
     private func element(for id: ID) -> Element? {
         guard let index = indicesByID[id] else { return nil }
+
         return configuration.data[index]
     }
 
@@ -266,6 +273,7 @@ public final class NSCollectionHStack<
         for path in collectionView.indexPathsForVisibleItems() {
             guard let id = dataSource.itemIdentifier(for: path), let element = element(at: path.item, id: id.id),
                   let item = collectionView.item(at: path) as? HostingCollectionViewItem else { continue }
+
             item.configure(configuration.viewProvider(element), id: AnyHashable(id))
         }
     }
@@ -286,6 +294,7 @@ public final class NSCollectionHStack<
 
     func computeSizes(forWidth width: CGFloat) -> (selfSize: CGSize, itemSize: CGSize) {
         guard width.isFiniteAndPositive else { return (.zero, .zero) }
+
         if let cachedSize, cachedSize.width == width {
             return (CGSize(width: NSView.noIntrinsicMetric, height: cachedSize.height), cachedSize.item)
         }
@@ -306,6 +315,7 @@ public final class NSCollectionHStack<
 
     private func measure(width: CGFloat?) -> CGSize {
         guard ids.isNotEmpty else { return CGSize(width: width ?? 0, height: 0) }
+
         return itemSizeCache.size(width: width) {
             let element = configuration.data[configuration.data.startIndex]
             return measuredContentSize(configuration.viewProvider(element), width: width)
@@ -351,6 +361,7 @@ public final class NSCollectionHStack<
                     return size
                 }
                 guard let element = element(at: index, id: item.id) else { return nil }
+
                 let size = measuredContentSize(configuration.viewProvider(element))
                 variableSizes[item.id] = size
                 return size
@@ -381,6 +392,7 @@ public final class NSCollectionHStack<
         collectionView.visibleItems().compactMap { item in
             guard let item = item as? HostingCollectionViewItem,
                   let id = item.representedID, let layer = item.view.layer else { return nil }
+
             return ResizeAnimation.Item(id: id, layer: layer)
         }
     }
@@ -389,6 +401,7 @@ public final class NSCollectionHStack<
         let viewport = scrollView.contentView.bounds
         // A resize notification can arrive before the new item metrics are applied.
         guard !applyingLayout, appliedWidth == bounds.width, appliedWidth == viewport.width else { return }
+
         // AppKit may round the restored origin to a backing pixel in a later pass.
         let tolerance = 1 / max(window?.backingScaleFactor ?? 1, 1)
         if let anchorOffset, abs(anchorOffset - viewport.minX) <= tolerance {
@@ -399,6 +412,7 @@ public final class NSCollectionHStack<
             scrollAnchor = nil
             return
         }
+
         if viewport.minX <= 0.5 {
             scrollAnchor = .leading
         } else if viewport.minX >= maximumOffset - 0.5 {
@@ -413,6 +427,7 @@ public final class NSCollectionHStack<
                 return abs(lhs - reference) < abs(rhs - reference)
             }
             guard let nearest, let index = nearest.indexPath?.item, nearest.frame.width.isFiniteAndPositive else { return }
+
             scrollAnchor = .item(index: index, fraction: (reference - nearest.frame.minX) / nearest.frame.width, centered: centered)
         }
     }
@@ -426,6 +441,7 @@ public final class NSCollectionHStack<
             offset = maximumOffset
         case let .item(index, fraction, centered):
             guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0)) else { return }
+
             let reference = centered ? scrollView.contentSize.width / 2 : collectionLayout.insets.left
             offset = attributes.frame.minX + attributes.frame.width * fraction - reference
         }
@@ -444,6 +460,7 @@ public final class NSCollectionHStack<
 
     public func scrollTo(index: Int, animated: Bool) {
         guard (0 ..< itemCount).contains(index) else { return }
+
         layoutSubtreeIfNeeded()
         guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0)) else { return }
 
@@ -474,6 +491,7 @@ public final class NSCollectionHStack<
             } completionHandler: { [weak self] in
                 MainActor.assumeIsolated {
                     guard let self, self.scrollAnimationGeneration == generation, !self.disconnected else { return }
+
                     self.isAnimatingScroll = false
                     self.scheduleSettle(snap: false)
                 }
@@ -487,6 +505,7 @@ public final class NSCollectionHStack<
 
     private func cancelScrollAnimation() {
         guard isAnimatingScroll else { return }
+
         isAnimatingScroll = false
         scrollAnimationGeneration += 1
 
@@ -500,6 +519,7 @@ public final class NSCollectionHStack<
     @objc
     private func boundsChanged() {
         guard !updating, !applyingLayout, !disconnected else { return }
+
         recordScrollAnchor()
         scheduleSettle(snap: gestureStart != nil)
         updatePrefetch()
@@ -511,6 +531,7 @@ public final class NSCollectionHStack<
 
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
+
             if snap || self.gestureStart != nil {
                 self.scroll(
                     to: self.settledOffset(proposed: self.scrollView.contentView.bounds.minX, gestureStart: self.gestureStart),
@@ -568,6 +589,7 @@ public final class NSCollectionHStack<
 
     private func publishScrollState() {
         guard !updating else { return }
+
         let visible = collectionView.indexPathsForVisibleItems().map(\.item).sorted()
         let offset = scrollView.contentView.bounds.minX
 
@@ -597,6 +619,7 @@ public final class NSCollectionHStack<
                 for index in visible {
                     guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0))
                     else { continue }
+
                     if abs(attributes.frame.minX - offset - configuration.insets.leading) <= tolerance {
                         alignedID = itemID(at: index).id
                         break
@@ -626,12 +649,14 @@ public final class NSCollectionHStack<
 
     private func updatePrefetch() {
         guard ids.isNotEmpty else { return }
+
         let viewport = scrollView.contentView.bounds
         let visible = Set(collectionLayout.layoutAttributesForElements(in: viewport).compactMap { $0.indexPath?.item })
         let nearby = collectionLayout.layoutAttributesForElements(in: viewport.insetBy(dx: -viewport.width, dy: 0))
 
         let next = Set(nearby.compactMap { attributes -> ID? in
             guard let index = attributes.indexPath?.item, !visible.contains(index), (0 ..< itemCount).contains(index) else { return nil }
+
             return itemID(at: index).id
         })
 

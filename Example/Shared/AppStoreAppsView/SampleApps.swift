@@ -213,7 +213,8 @@ let sampleApps: [SampleApp] = [
     ], (255, 228, 196)), // Pastel Bisque
 ]
     // Assign identity before the fixtures are shuffled or sampled; names can repeat.
-        .enumerated().map { index, raw in
+        .enumerated()
+        .map { index, raw in
             SampleApp(
                 id: index,
                 name: raw.0,

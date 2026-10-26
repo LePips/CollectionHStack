@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct ExampleWidthControl: View {
-    @Binding var value: CGFloat
+    @Binding
+    var value: CGFloat
     let range: ClosedRange<Int>
     let step: Int
 

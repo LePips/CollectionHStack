@@ -8,11 +8,13 @@ import Testing
 @MainActor
 struct MacOSResizeTests {
     @Test(arguments: 0 ..< 4)
-    func hostedArtworkAndTextResizeTogether(style: Int) async throws {
+    func `hosted artwork and text resize together`(style: Int) async throws {
         let host = NSHostingView(rootView: VStack(spacing: 0) {
             CollectionHStack(count: 10000, columns: 3, rows: 2) { _ in
                 CompositeCell(style: style)
-            }.insets(horizontal: 20).itemSpacing(10)
+            }
+            .insets(horizontal: 20)
+            .itemSpacing(10)
             Spacer(minLength: 0)
         })
         let window = present(host)
@@ -27,7 +29,8 @@ struct MacOSResizeTests {
             let item = try #require(collection.collectionViewLayout?.layoutAttributesForItem(at: IndexPath(item: 0, section: 0)))
             let itemWidth = (viewport.bounds.width - 60) / 3
             let reference = NSHostingController(rootView: CompositeCell(style: style)
-                .frame(width: itemWidth).fixedSize(horizontal: false, vertical: true))
+                .frame(width: itemWidth)
+                .fixedSize(horizontal: false, vertical: true))
             let expected = reference.sizeThatFits(in: CGSize(width: itemWidth, height: 1200))
             #expect(abs(item.size.width - itemWidth) < 0.1)
             #expect(abs(item.size.height - expected.height) < 1)
@@ -38,11 +41,14 @@ struct MacOSResizeTests {
     }
 
     @Test(arguments: 0 ..< 4)
-    func distantTargetStaysAnchoredAcrossRepeatedResizes(behaviorIndex: Int) async throws {
+    func `distant target stays anchored across repeated resizes`(behaviorIndex: Int) async throws {
         let behavior: CollectionHStackScrollBehavior = [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging][behaviorIndex]
         let view = NSCollectionHStack(configuration: CollectionHStack(count: 10000, columns: 3, rows: 2) { _ in
             Color.blue.aspectRatio(2 / 3, contentMode: .fit)
-        }.insets(horizontal: 20).itemSpacing(10).scrollBehavior(behavior))
+        }
+        .insets(horizontal: 20)
+        .itemSpacing(10)
+        .scrollBehavior(behavior))
         let window = present(view)
         defer { view.disconnect()
             window.close()
@@ -66,10 +72,13 @@ struct MacOSResizeTests {
     }
 
     @Test
-    func partiallyVisibleItemRetainsItsFractionAfterResize() throws {
+    func `partially visible item retains its fraction after resize`() throws {
         let view = NSCollectionHStack(configuration: CollectionHStack(count: 1000, columns: 3) { _ in
             Color.blue.frame(height: 40)
-        }.insets(horizontal: 20).itemSpacing(10).scrollBehavior(.continuousLeadingEdge))
+        }
+        .insets(horizontal: 20)
+        .itemSpacing(10)
+        .scrollBehavior(.continuousLeadingEdge))
         let window = present(view)
         defer { view.disconnect()
             window.close()
@@ -85,10 +94,12 @@ struct MacOSResizeTests {
     }
 
     @Test(arguments: [false, true])
-    func contentEdgesStayPinned(trailing: Bool) {
+    func `content edges stay pinned`(trailing: Bool) {
         let view = NSCollectionHStack(configuration: CollectionHStack(count: 12, columns: 3) { _ in
             Color.blue.frame(height: 40)
-        }.insets(horizontal: 20).itemSpacing(10))
+        }
+        .insets(horizontal: 20)
+        .itemSpacing(10))
         let window = present(view)
         defer { view.disconnect()
             window.close()
@@ -103,7 +114,7 @@ struct MacOSResizeTests {
     }
 
     @Test(arguments: 0 ..< 4)
-    func sizingVariantsKeepTheirLeadingItem(layoutIndex: Int) throws {
+    func `sizing variants keep their leading item`(layoutIndex: Int) throws {
         let layout: CollectionHStackLayout = [
             .minimumWidth(columnWidth: 100, rows: 2),
             .minimumWidth(columnWidth: 100, rows: 2, columnFraction: 0.5),
@@ -112,7 +123,10 @@ struct MacOSResizeTests {
         ][layoutIndex]
         let view = NSCollectionHStack(configuration: CollectionHStack(uniqueElements: Array(0 ..< 1000), layout: layout) {
             Color.blue.frame(width: CGFloat(100 + ($0 % 4) * 20), height: 40)
-        }.insets(horizontal: 20).itemSpacing(10).scrollBehavior(.continuousLeadingEdge))
+        }
+        .insets(horizontal: 20)
+        .itemSpacing(10)
+        .scrollBehavior(.continuousLeadingEdge))
         let window = present(view)
         defer { view.disconnect()
             window.close()
@@ -127,13 +141,16 @@ struct MacOSResizeTests {
     }
 
     @Test
-    func swiftUIResizeKeepsAlignedBindingAndInitialTarget() async throws {
+    func `swift UI resize keeps aligned binding and initial target`() async throws {
         var aligned: Int?
         let configuration = CollectionHStack(count: 1000, columns: 3, rows: 2) { _ in
             Color.blue.aspectRatio(2, contentMode: .fit)
-        }.insets(horizontal: 20).itemSpacing(10).scrollBehavior(.continuousLeadingEdge)
-            .initialElement(id: 700)
-            .alignedLeadingElement(id: Binding(get: { aligned }, set: { aligned = $0 }))
+        }
+        .insets(horizontal: 20)
+        .itemSpacing(10)
+        .scrollBehavior(.continuousLeadingEdge)
+        .initialElement(id: 700)
+        .alignedLeadingElement(id: Binding(get: { aligned }, set: { aligned = $0 }))
         let host = NSHostingView(rootView: VStack {
             configuration
             Spacer(minLength: 0)

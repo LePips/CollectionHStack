@@ -8,7 +8,7 @@ import Testing
 struct CollectionHStackSizingTests {
 
     @Test(arguments: 0 ..< 3)
-    func measurementRevisionRefreshesCachedWidthsAndIntrinsicHeight(layoutIndex: Int) throws {
+    func `measurement revision refreshes cached widths and intrinsic height`(layoutIndex: Int) throws {
         let layout: CollectionHStackLayout = [
             .grid(columns: 2, rows: 2, columnTrailingInset: 0),
             .minimumWidth(columnWidth: 100, rows: 2),
@@ -49,7 +49,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func contentMeasurementIsCachedForEachResizeWidth() {
+    func `content measurement is cached for each resize width`() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter)
 
@@ -65,7 +65,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func measuredProportionsDetermineHeightForEveryResizeWidth() {
+    func `measured proportions determine height for every resize width`() {
         let stack = makeAspectRatioStack()
 
         let initialSize = stack.fittingSize(forWidth: 210)
@@ -80,14 +80,14 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func fractionalWidthMeasurementPreservesContentProportions() {
+    func `fractional width measurement preserves content proportions`() {
         let stack = makeAspectRatioStack()
         #expect(abs(stack.fittingSize(forWidth: 550 / 3).height - 130) <= 0.001)
         #expect(abs(stack.fittingSize(forWidth: 810).height - 600) <= 0.001)
     }
 
     @Test
-    func dataChangesAndDynamicTypeRemeasureContent() {
+    func `data changes remeasure content`() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter)
         #expect(stack.fittingSize(forWidth: 210).height == 50)
@@ -98,13 +98,44 @@ struct CollectionHStackSizingTests {
         )
         #expect(stack.fittingSize(forWidth: 410).height == 50)
         #expect(counter.value == 3)
-        stack.traitCollectionDidChange(UITraitCollection(preferredContentSizeCategory: .accessibilityExtraExtraExtraLarge))
-        #expect(stack.fittingSize(forWidth: 210).height == 50)
-        #expect(counter.value == 4)
     }
 
     @Test
-    func selfSizingLayoutsKeepTheirMeasuredDimensionsWhileResizing() {
+    func `dynamic type changes invalidate cached measurements`() {
+        let counter = MeasurementCounter()
+        let stack = makeStack(counter: counter)
+        stack.traitOverrides.preferredContentSizeCategory = .large
+
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 410, height: 200))
+        let controller = UIViewController()
+        window.rootViewController = controller
+        controller.view.addSubview(stack)
+        stack.frame = CGRect(x: 0, y: 0, width: 210, height: 50)
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        window.layoutIfNeeded()
+
+        #expect(stack.fittingSize(forWidth: 210).height == 50)
+        #expect(stack.fittingSize(forWidth: 410).height == 50)
+        let measurements = counter.value
+
+        stack.traitOverrides.userInterfaceStyle = .dark
+        stack.updateTraitsIfNeeded()
+        #expect(stack.fittingSize(forWidth: 210).height == 50)
+        #expect(counter.value == measurements, "Unrelated traits must preserve cached measurements")
+
+        counter.height = 75
+        stack.traitOverrides.preferredContentSizeCategory = .accessibilityExtraExtraExtraLarge
+        stack.updateTraitsIfNeeded()
+        #expect(stack.fittingSize(forWidth: 210).height == 75)
+        #expect(stack.fittingSize(forWidth: 410).height == 75)
+        stack.frame.size.height = 75
+        stack.layoutIfNeeded()
+        #expect(stack.intrinsicContentSize.height == 75)
+    }
+
+    @Test
+    func `self sizing layouts keep their measured dimensions while resizing`() {
         for layout: CollectionHStackLayout in [.selfSizingSameSize(rows: 1), .selfSizingVariadicWidth(rows: 1)] {
             let stack = makeStack(counter: MeasurementCounter(), layout: layout)
             let initialSize = stack.computeSizes(forWidth: 210)
@@ -115,7 +146,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func zeroWidthDoesNotCreateAMeasurement() {
+    func `zero width does not create A measurement`() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter)
         #expect(stack.computeSizes(forWidth: 0).selfSize.height == 0)
@@ -126,7 +157,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func zeroHeightDoesNotCacheAnIncompleteMeasurement() {
+    func `zero height does not cache an incomplete measurement`() {
         let counter = MeasurementCounter()
         counter.height = 0
         let stack = makeStack(counter: counter)
@@ -138,7 +169,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func emptyCollectionMeasuresWhenDataArrives() {
+    func `empty collection measures when data arrives`() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter, data: [])
         #expect(stack.computeSizes(forWidth: 210).selfSize.height == 0)
@@ -153,7 +184,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func resizePreservesFixedContentHeight() {
+    func `resize preserves fixed content height`() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter)
 
@@ -166,7 +197,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func proxyRedrawRemeasuresAContentDefinedAspectRatio() {
+    func `proxy redraw remeasures A content defined aspect ratio`() {
         let aspectRatio = MutableAspectRatio(2 / 3)
         let proxy = CollectionHStackProxy()
         let stack = makeMutableAspectRatioStack(aspectRatio: aspectRatio, proxy: proxy)
@@ -186,7 +217,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func widthOnlyResizeUpdatesTheResolvedItemWidth() throws {
+    func `width only resize updates the resolved item width`() throws {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter)
 
@@ -213,8 +244,74 @@ struct CollectionHStackSizingTests {
         #expect(abs(resizedItemSize.height - 50) <= 0.001)
     }
 
+    @Test(arguments: [CGFloat(1), 2, 3], [CGFloat(139.83065744173726), 257.7357421875])
+    func `single row items fit fractional collection bounds`(displayScale: CGFloat, itemHeight: CGFloat) throws {
+        let counter = MeasurementCounter()
+        counter.height = itemHeight
+        let stack = makeStack(counter: counter)
+        stack.traitOverrides.displayScale = displayScale
+        var fittingSize = stack.fittingSize(forWidth: 402)
+        fittingSize.height = (fittingSize.height * displayScale).rounded() / displayScale
+
+        for origin: CGFloat in [0, 62, 301 / 3, 1261 / 3] {
+            stack.frame = CGRect(origin: CGPoint(x: 0, y: origin), size: fittingSize)
+            stack.setNeedsLayout()
+            stack.layoutIfNeeded()
+            let collection = try #require(stack.subviews.compactMap { $0 as? UICollectionView }.first)
+            let item = stack.collectionView(
+                collection,
+                layout: collection.collectionViewLayout,
+                sizeForItemAt: IndexPath(item: 0, section: 0)
+            )
+            #expect(item.height < collection.bounds.height)
+        }
+    }
+
     @Test
-    func swiftUIFittingProposalDoesNotOverwriteLiveUIKitItemSize() throws {
+    func `display scale changes invalidate rounded intrinsic height`() {
+        let counter = MeasurementCounter()
+        counter.height = 50.3
+        let stack = makeStack(counter: counter)
+        stack.traitOverrides.displayScale = 1
+
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 200))
+        let controller = UIViewController()
+        window.rootViewController = controller
+        controller.view.addSubview(stack)
+        stack.frame = CGRect(x: 0, y: 0, width: 402, height: 51)
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        window.layoutIfNeeded()
+
+        #expect(stack.fittingSize(forWidth: 402).height == 51)
+        stack.traitOverrides.displayScale = 3
+        stack.updateTraitsIfNeeded()
+        #expect(abs(stack.fittingSize(forWidth: 402).height - 151 / 3) < 0.001)
+    }
+
+    @Test
+    func `transitional collection height does not change measured content height`() throws {
+        let stack = makeAspectRatioStack()
+        let fittingSize = stack.fittingSize(forWidth: 210)
+        stack.frame = CGRect(origin: .zero, size: fittingSize)
+        stack.layoutIfNeeded()
+        let collection = try #require(stack.subviews.compactMap { $0 as? UICollectionView }.first)
+
+        for height: CGFloat in [100, 150, 80, 150] {
+            collection.frame.size.height = height
+            let item = stack.collectionView(
+                collection,
+                layout: collection.collectionViewLayout,
+                sizeForItemAt: IndexPath(item: 0, section: 0)
+            )
+            #expect(item.height < height)
+            #expect(abs(item.height - height) < 0.001)
+            #expect(stack.fittingSize(forWidth: 210).height == 150)
+        }
+    }
+
+    @Test
+    func `swift UI fitting proposal does not overwrite live UI kit item size`() throws {
         let stack = makeStack(
             counter: MeasurementCounter(),
             isCarousel: true
@@ -255,7 +352,9 @@ struct CollectionHStackSizingTests {
             collectionView.collectionViewLayout.layoutAttributesForItem(
                 at: IndexPath(item: 0, section: 0)
             )
-        ).size.width == 248)
+        )
+        .size
+        .width == 248)
 
         let liveSizeAfterBoundsChange = stack.collectionView(
             collectionView,
@@ -266,7 +365,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func fractionalMinimumWidthReusesMeasurementsForMatchingItemWidths() throws {
+    func `fractional minimum width reuses measurements for matching item widths`() throws {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter, layout: .minimumWidth(columnWidth: 100, rows: 2, columnFraction: 0.5))
         let cases: [(CGFloat, CGFloat)] = [(210, 100), (209, 199 / 1.5), (160, 100), (159, 159), (210, 100)]
@@ -287,7 +386,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func changingOnlyTheMinimumWidthFractionInvalidatesSizing() {
+    func `changing only the minimum width fraction invalidates sizing`() {
         let stack = makeStack(counter: MeasurementCounter(), layout: .minimumWidth(columnWidth: 100, rows: 1))
         #expect(stack.fittingSize(forWidth: 160).height == 50)
         stack.update(newData: [0], alignedLeadingElementID: nil, layout: .minimumWidth(columnWidth: 100, rows: 1, columnFraction: 0.5))
@@ -295,7 +394,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func minimumWidthUsesOneColumnWhenTheContainerIsNarrowerThanTheMinimum() {
+    func `minimum width uses one column when the container is narrower than the minimum`() {
         let counter = MeasurementCounter()
         let stack = makeStack(
             counter: counter,
@@ -310,7 +409,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func invalidRowCountUsesOneRow() {
+    func `invalid row count uses one row`() {
         let stack = makeStack(
             counter: MeasurementCounter(),
             layout: .grid(columns: 2, rows: 0, columnTrailingInset: 0)
@@ -324,7 +423,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func largeCollectionResizeMeasuresOnlyOneItemPerWidth() {
+    func `large collection resize measures only one item per width`() {
         let counter = MeasurementCounter()
         let stack = makeStack(counter: counter, data: Array(0 ..< 10000))
         for step in 0 ..< 120 {
@@ -335,7 +434,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func insetsAndSpacingUpdateWithoutChangingContainerWidth() throws {
+    func `insets and spacing update without changing container width`() throws {
         let stack = makeStack(counter: MeasurementCounter())
         _ = stack.fittingSize(forWidth: 210)
         stack.update(
@@ -354,7 +453,7 @@ struct CollectionHStackSizingTests {
     }
 
     @Test
-    func redrawUsesUpdatedContentProvider() {
+    func `redraw uses updated content provider`() {
         let original = MeasurementCounter()
         let replacement = MeasurementCounter()
         let stack = makeStack(counter: original)

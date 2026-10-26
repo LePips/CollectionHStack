@@ -26,6 +26,7 @@ final class CollectionScrollView: NSScrollView {
 
     override func scrollWheel(with event: NSEvent) {
         guard allowsScrolling else { return }
+
         let activePhases: NSEvent.Phase = [.began, .stationary, .changed]
         isTrackingScroll = !event.phase.intersection(activePhases).isEmpty
             || !event.momentumPhase.intersection(activePhases).isEmpty
@@ -92,6 +93,7 @@ final class CollectionLayout: NSCollectionViewLayout {
 
     var count: Int {
         guard let collectionView, collectionView.numberOfSections > 0 else { return 0 }
+
         return collectionView.numberOfItems(inSection: 0)
     }
 
@@ -102,6 +104,7 @@ final class CollectionLayout: NSCollectionViewLayout {
     override func prepare() {
         super.prepare()
         guard horizontal, variableSizes.isNotEmpty, columnOffsets.isEmpty else { return }
+
         var offset = insets.left
         for group in 0 ..< groups {
             let start = group * lanes
@@ -132,6 +135,7 @@ final class CollectionLayout: NSCollectionViewLayout {
 
     override func layoutAttributesForItem(at indexPath: IndexPath) -> NSCollectionViewLayoutAttributes? {
         guard indexPath.item >= 0, indexPath.item < count else { return nil }
+
         let group = indexPath.item / max(lanes, 1)
         let lane = indexPath.item % max(lanes, 1)
         let attributes = NSCollectionViewLayoutAttributes(forItemWith: indexPath)
@@ -151,6 +155,7 @@ final class CollectionLayout: NSCollectionViewLayout {
 
     override func layoutAttributesForElements(in rect: NSRect) -> [NSCollectionViewLayoutAttributes] {
         guard groups > 0 else { return [] }
+
         let lower = horizontal ? rect.minX : rect.minY
         let upper = horizontal ? rect.maxX : rect.maxY
         let inset = horizontal ? insets.left : insets.top
@@ -165,6 +170,7 @@ final class CollectionLayout: NSCollectionViewLayout {
             last = Int(floor((upper - inset) / stride).clamped(to: 0 ... CGFloat(groups - 1)))
         }
         guard first <= last else { return [] }
+
         return (first * lanes ..< min((last + 1) * lanes, count)).compactMap {
             let attributes = layoutAttributesForItem(at: IndexPath(item: $0, section: 0))
             return attributes?.frame.intersects(rect) == true ? attributes : nil

@@ -6,7 +6,7 @@ struct FractionalMinimumWidthTests {
     private let insets = EdgeInsets(top: 5, leading: 20, bottom: 7, trailing: 30)
 
     @Test
-    func halfColumnsSwitchAtExactFitBoundariesInBothDirections() throws {
+    func `half columns switch at exact fit boundaries in both directions`() throws {
         let metrics = metrics()
         // At 180, 1.5 items fit; at 260, two full items and both insets fit.
         let cases: [(CGFloat, CGFloat)] = [
@@ -21,7 +21,7 @@ struct FractionalMinimumWidthTests {
     }
 
     @Test
-    func aWidthImmediatelyBelowABreakpointDoesNotFitAnotherColumn() throws {
+    func `a width immediately below A breakpoint does not fit another column`() throws {
         let metrics = metrics()
         for boundary: CGFloat in [180, 260, 290, 370] {
             #expect(try #require(metrics.itemWidth(for: boundary.nextDown)) > 100)
@@ -31,7 +31,7 @@ struct FractionalMinimumWidthTests {
     }
 
     @Test
-    func decimalMinimumsAndSpacingSwitchExactlyAtTheirGeometryBoundary() throws {
+    func `decimal minimums and spacing switch exactly at their geometry boundary`() throws {
         for minimum: CGFloat in [79.3, 123.4, 160.5] {
             for spacing: CGFloat in [0.1, 7.3, 10] {
                 let insets = EdgeInsets(top: 0, leading: 15.5, bottom: 0, trailing: 20.2)
@@ -53,7 +53,7 @@ struct FractionalMinimumWidthTests {
     }
 
     @Test
-    func fractionalAndWholeLayoutsUseTheSameInsetsAndGapsAsGrid() throws {
+    func `fractional and whole layouts use the same insets and gaps as grid`() throws {
         for (width, columns): (CGFloat, CGFloat) in [(200, 1.5), (270, 2), (310, 2.5)] {
             let grid = LayoutMetrics(layout: .grid(columns: columns, rows: 2, columnTrailingInset: 0), insets: insets, itemSpacing: 10)
             #expect(metrics().itemWidth(for: width) == grid.itemWidth(for: width))
@@ -65,7 +65,7 @@ struct FractionalMinimumWidthTests {
     }
 
     @Test
-    func customFractionsChooseTheLargestFittingWholeOrPartialColumnCount() throws {
+    func `custom fractions choose the largest fitting whole or partial column count`() throws {
         for fraction: CGFloat in [0.25, 1 / 3, 0.5, 0.75] {
             for spacing: CGFloat in [0, 10, 80] {
                 for trailing: CGFloat in [0, 30, 180] {
@@ -99,7 +99,7 @@ struct FractionalMinimumWidthTests {
     }
 
     @Test
-    func halfColumnsReduceTheSizeJumpWhenTwoColumnsStopFitting() throws {
+    func `half columns reduce the size jump when two columns stop fitting`() throws {
         let whole = LayoutMetrics(layout: .minimumWidth(columnWidth: 100, rows: 1), insets: .init(), itemSpacing: 10)
         let half = LayoutMetrics(layout: .minimumWidth(columnWidth: 100, rows: 1, columnFraction: 0.5), insets: .init(), itemSpacing: 10)
         #expect(whole.itemWidth(for: 210) == 100)
@@ -111,7 +111,7 @@ struct FractionalMinimumWidthTests {
     }
 
     @Test
-    func invalidFractionsKeepExistingWholeColumnBehavior() {
+    func `invalid fractions keep existing whole column behavior`() {
         let whole = metrics(fraction: 0)
         for fraction: CGFloat in [-1, 1, 1.5, .nan, .infinity, -.infinity] {
             for width: CGFloat in [30, 70, 180, 259.9, 260, 500] {
@@ -125,7 +125,7 @@ struct FractionalMinimumWidthTests {
 
     @Test
     @MainActor
-    func allConvenienceInitializersForwardTheFractionAndKeepTheDefault() {
+    func `all convenience initializers forward the fraction and keep the default`() {
         struct Item: Identifiable { let id: Int }
         let items = [Item(id: 1)]
         let expected = CollectionHStackLayout.minimumWidth(columnWidth: 100, rows: 2, columnFraction: 0.5)

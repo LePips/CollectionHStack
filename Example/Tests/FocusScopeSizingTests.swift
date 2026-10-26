@@ -8,7 +8,7 @@ import Testing
 @MainActor
 struct FocusScopeSizingTests {
     @Test
-    func localScopePreservesSectionLayoutAsWidthAndContentChange() async throws {
+    func `local scope preserves section layout as width and content change`() async throws {
         var measurements: [[CGSize]] = []
         for scoped in [false, true] {
             let model = ScopeSizeModel()
@@ -46,7 +46,8 @@ struct FocusScopeSizingTests {
 @MainActor
 private final class ScopeSizeModel {
     var metadataHeight: CGFloat = 120
-    @ObservationIgnored var sectionSize: CGSize = .zero
+    @ObservationIgnored
+    var sectionSize: CGSize = .zero
 }
 
 private struct ScopeSizeFixture: View {
@@ -63,7 +64,8 @@ private struct ScopeSizeFixture: View {
         }.ignoresSafeArea()
     }
 
-    @ViewBuilder private var group: some View {
+    @ViewBuilder
+    private var group: some View {
         if scoped {
             CollectionHStackFocusScope { section }
         } else {
@@ -78,14 +80,18 @@ private struct ScopeSizeFixture: View {
                 HStack {
                     ForEach(0 ..< 5) { season in Button("Season \(season)") {} }
                 }.padding(.horizontal, 60)
-            }.scrollClipDisabled().focusSection()
+            }
+            .scrollClipDisabled()
+            .focusSection()
             CollectionHStack(uniqueElements: Array(0 ..< 20), layout: .grid(columns: 3.5, rows: 1, columnTrailingInset: 0)) { index in
                 VStack(alignment: .leading) {
                     Button {} label: { Color.blue.aspectRatio(16.0 / 9.0, contentMode: .fit) }.buttonStyle(.card)
                     Button {} label: {
                         Text("Episode \(index)").frame(maxWidth: .infinity, alignment: .leading).frame(height: metadataHeight)
                     }
-                }.focusSection().ignoresSafeArea()
+                }
+                .focusSection()
+                .ignoresSafeArea()
             }
             .focusBehavior(initial: .leading, returning: .leading)
             .initialElement(id: 4)

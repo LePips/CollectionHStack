@@ -6,7 +6,7 @@ struct LayoutMetricsTests {
     private let insets = EdgeInsets(top: 5, leading: 20, bottom: 7, trailing: 30)
 
     @Test
-    func fractionalColumnsReserveOnlyTheLeadingInset() throws {
+    func `fractional columns reserve only the leading inset`() throws {
         let whole = LayoutMetrics(layout: .grid(columns: 3, rows: 2, columnTrailingInset: 5), insets: insets, itemSpacing: 10)
         let fractional = LayoutMetrics(layout: .grid(columns: 2.5, rows: 2, columnTrailingInset: 5), insets: insets, itemSpacing: 10)
         #expect(try abs(#require(whole.itemWidth(for: 500)) - 425 / 3) < 0.0001)
@@ -15,7 +15,7 @@ struct LayoutMetricsTests {
     }
 
     @Test
-    func minimumWidthChangesColumnsAtTheSpacingBoundary() throws {
+    func `minimum width changes columns at the spacing boundary`() throws {
         let metrics = LayoutMetrics(layout: .minimumWidth(columnWidth: 100, rows: 1), insets: insets, itemSpacing: 10)
         #expect(try abs(#require(metrics.itemWidth(for: 259.9)) - 209.9) < 0.0001)
         #expect(metrics.itemWidth(for: 260) == 100)
@@ -24,7 +24,7 @@ struct LayoutMetricsTests {
     }
 
     @Test
-    func selfSizingUsesNaturalWidthAndAllConfiguredRows() {
+    func `self sizing uses natural width and all configured rows`() {
         for layout: CollectionHStackLayout in [.selfSizingSameSize(rows: 3), .selfSizingVariadicWidth(rows: 3)] {
             let metrics = LayoutMetrics(layout: layout, insets: insets, itemSpacing: 10)
             #expect(metrics.itemWidth(for: 500) == nil)
@@ -33,7 +33,7 @@ struct LayoutMetricsTests {
     }
 
     @Test
-    func invalidConfigurationAndWidthsStayFinite() {
+    func `invalid configuration and widths stay finite`() {
         for value: CGFloat in [0, -1, .nan, .infinity] {
             let metrics = LayoutMetrics(layout: .grid(columns: value, rows: 0, columnTrailingInset: 0), insets: insets, itemSpacing: value)
             #expect(metrics.rows == 1)
@@ -43,7 +43,7 @@ struct LayoutMetricsTests {
     }
 
     @Test
-    func naturalMeasurementIsCachedSeparatelyFromWidthProposals() {
+    func `natural measurement is cached separately from width proposals`() {
         var cache = ItemSizeCache()
         var measurements = 0
         for _ in 0 ..< 3 {
@@ -60,7 +60,7 @@ struct LayoutMetricsTests {
 
 struct ItemSizeCacheTests {
     @Test
-    func resizingCachesUnroundedMeasurementsByWidth() {
+    func `resizing caches unrounded measurements by width`() {
         var cache = ItemSizeCache()
         var measurements = 0
         for width: CGFloat in [81.25, 100, 240.5, 100, 81.25] {
@@ -75,7 +75,7 @@ struct ItemSizeCacheTests {
     }
 
     @Test
-    func invalidMeasurementsDoNotPoisonTheCache() {
+    func `invalid measurements do not poison the cache`() {
         var cache = ItemSizeCache()
         var measurements = 0
         for height: CGFloat in [0, .nan, .infinity] {
@@ -95,7 +95,7 @@ struct ItemSizeCacheTests {
     }
 
     @Test
-    func invalidWidthsNeverMeasureContent() {
+    func `invalid widths never measure content`() {
         var cache = ItemSizeCache()
         for width: CGFloat in [0, -1, .nan, .infinity] {
             #expect(cache.size(width: width) { Issue.record("Invalid widths must not measure")
@@ -106,7 +106,7 @@ struct ItemSizeCacheTests {
     }
 
     @Test
-    func liveResizeKeepsOnlyRecentMeasurements() {
+    func `live resize keeps only recent measurements`() {
         var cache = ItemSizeCache()
         for width in 1 ... 1000 {
             _ = cache.size(width: CGFloat(width)) { CGSize(width: width, height: 50) }

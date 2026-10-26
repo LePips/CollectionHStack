@@ -79,6 +79,7 @@ extension Collection {
 
     func prefixPositive(_ maxLength: Int) -> Self.SubSequence {
         guard maxLength > 0 else { return self[..<endIndex] }
+
         return prefix(maxLength)
     }
 }

@@ -7,7 +7,7 @@ import Testing
 @MainActor
 struct CollectionHStackUpdateTests {
     @Test
-    func collidingIDsAndStagedUpdatesKeepTheCorrectElements() async throws {
+    func `colliding I ds and staged updates keep the correct elements`() async throws {
         var configured: [Int] = []
         let values = (0 ..< 8).map(CollidingID.init)
         let view = UICollectionHStack(
@@ -64,7 +64,7 @@ struct CollectionHStackUpdateTests {
     }
 
     @Test
-    func carouselResolvesLatestContentAfterSliceAndPrefixChanges() throws {
+    func `carousel resolves latest content after slice and prefix changes`() throws {
         struct Value: Equatable {
             let id: Int
             let content: String
@@ -111,7 +111,7 @@ struct CollectionHStackUpdateTests {
     }
 
     @Test
-    func carouselGrowthDoesNotReadOrCopySourceElements() throws {
+    func `carousel growth does not read or copy source elements`() throws {
         let counter = ElementReadCounter()
         let values = CountingValues(counter: counter)
         let view = UICollectionHStack(
@@ -136,7 +136,7 @@ struct CollectionHStackUpdateTests {
     }
 
     @Test
-    func hostingControllerSurvivesCellReuse() {
+    func `hosting controller survives cell reuse`() {
         let cell = HostingCollectionViewCell<Text>()
         cell.setup(view: Text("First"), id: 1)
         let host = cell.contentView.subviews.first

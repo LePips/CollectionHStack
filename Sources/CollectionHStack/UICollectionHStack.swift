@@ -138,6 +138,13 @@ public class UICollectionHStack<
         proxy.collectionView = self
 
         collectionView.clipsToBounds = clipsToBounds
+
+        registerForTraitChanges([
+            UITraitPreferredContentSizeCategory.self,
+            UITraitDisplayScale.self,
+        ]) { (self: Self, _: UITraitCollection) in
+            self.invalidateSizing()
+        }
     }
 
     @available(*, unavailable)
@@ -184,14 +191,17 @@ public class UICollectionHStack<
         let collectionView = FocusCollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.identityAt = { [weak self] path in
             guard let self, path.section == 0, (0 ..< self.effectiveItemCount).contains(path.item) else { return nil }
+
             return AnyHashable(self.item(at: path.item).differenceIdentifier)
         }
         collectionView.indexPathForIdentity = { [weak self] identity in
             guard let self, let identity = identity.base as? CollectionItem<ID>.Identity else { return nil }
+
             if let stagedItems = self.stagedItems {
                 return stagedItems.firstIndex { $0.differenceIdentifier == identity }.map { IndexPath(item: $0, section: 0) }
             }
             guard let offset = self.dataIndex.ids.firstIndex(of: identity.id) else { return nil }
+
             let position = identity.repetition * self.dataIndex.ids.count + offset
             // If a carousel repetition disappeared, restore the surviving element.
             return IndexPath(item: position < self.effectiveItemCount ? position : offset, section: 0)
@@ -241,6 +251,7 @@ public class UICollectionHStack<
 
     private func evaluateInitialElementIfNeeded() {
         guard !hasEvaluatedInitialElement, let initialElementID, dataIndex.ids.isNotEmpty else { return }
+
         hasEvaluatedInitialElement = true
         pendingInitialElementID = dataIndex[initialElementID] != nil ? initialElementID : nil
         if pendingInitialElementID != nil {
@@ -256,16 +267,10 @@ public class UICollectionHStack<
         // Consume before scrolling, which can synchronously trigger another layout.
         pendingInitialElementID = nil
         guard let index = index(id: target) else { return }
+
         UIView.performWithoutAnimation {
             scrollTo(index: index, animated: false)
             (collectionView.flowLayout as? FullPagingFlowLayout)?.synchronizePageWithContentOffset()
-        }
-    }
-
-    override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        if previousTraitCollection?.preferredContentSizeCategory != traitCollection.preferredContentSizeCategory {
-            invalidateSizing()
         }
     }
 
@@ -285,8 +290,7 @@ public class UICollectionHStack<
     }
 
     private func updateSizes(forWidth width: CGFloat) {
-        guard width.isFiniteAndPositive else { return }
-        guard needsSizingUpdate || lastLaidOutWidth != width else { return }
+        guard width.isFiniteAndPositive, needsSizingUpdate || lastLaidOutWidth != width else { return }
 
         let resolvedSizes: (selfSize: CGSize, itemSize: CGSize) = if let fittingSizeCache, fittingSizeCache.width == width {
             (fittingSizeCache.selfSize, fittingSizeCache.itemSize)
@@ -338,6 +342,7 @@ public class UICollectionHStack<
     private var visibleResizeItems: [ResizeAnimation.Item] {
         collectionView.visibleCells.compactMap { cell in
             guard let cell = cell as? HostingCollectionViewCell<Content>, let id = cell.representedID else { return nil }
+
             return ResizeAnimation.Item(id: id, layer: cell.layer)
         }
     }
@@ -410,6 +415,7 @@ public class UICollectionHStack<
     public func scrollTo(index: Int, animated: Bool) {
 
         guard (0 ..< effectiveItemCount).contains(index) else { return }
+
         collectionView.layoutIfNeeded()
         if collectionView.flowLayout is ColumnAlignedLayout,
            let attributes = collectionView.collectionViewLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0))
@@ -439,6 +445,7 @@ public class UICollectionHStack<
     /// agree on the same height during a resize.
     func computeSizes(forWidth availableWidth: CGFloat) -> (selfSize: CGSize, itemSize: CGSize) {
         guard availableWidth.isFiniteAndPositive else { return (.zero, .zero) }
+
         let metrics = layoutMetrics
         let rows = metrics.rows
         let singleItemSize = measuredItemSize(width: metrics.itemWidth(for: availableWidth))
@@ -447,14 +454,18 @@ public class UICollectionHStack<
             alignedLayout.rows = rows
         }
 
-        let height = metrics.height(for: singleItemSize)
+        // SwiftUI aligns the representable's height to physical pixels. Round up
+        // first so that alignment cannot make the row shorter than its items.
+        // Ignore one floating-point step of measurement noise at pixel boundaries.
+        let displayScale = max(traitCollection.displayScale, 1)
+        let height = (metrics.height(for: singleItemSize).nextDown * displayScale).rounded(.up) / displayScale
         var flowLayoutItemSize = singleItemSize
 
         // UICollectionViewFlowLayout requires a one-row item to be strictly shorter
         // than the collection view. One representable floating-point step avoids its
         // invalid-size warning without changing the rendered pixel size.
         if rows == 1, insets.top + insets.bottom <= 0, flowLayoutItemSize.height > 0 {
-            flowLayoutItemSize.height = flowLayoutItemSize.height.nextDown
+            flowLayoutItemSize.height = min(flowLayoutItemSize.height, height).nextDown
         }
 
         return (
@@ -476,6 +487,7 @@ public class UICollectionHStack<
 
     private func measuredItemSize(width: CGFloat? = nil) -> CGSize {
         guard data.isNotEmpty else { return CGSize(width: nonnegativeFinite(width ?? 0), height: 0) }
+
         return itemSizeCache.size(width: width) {
             contentSize(width: width, element: data[data.startIndex])
         }
@@ -491,6 +503,7 @@ public class UICollectionHStack<
 
     private func itemCount(for index: CollectionDataIndex<ID>) -> Int {
         guard index.ids.isNotEmpty else { return 0 }
+
         return isCarousel ? max(100, effectiveItemCount, index.ids.count) : index.ids.count
     }
 
@@ -545,6 +558,7 @@ public class UICollectionHStack<
         for path in collectionView.indexPathsForVisibleItems {
             guard (0 ..< effectiveItemCount).contains(path.item),
                   let cell = collectionView.cellForItem(at: path) as? HostingCollectionViewCell<Content> else { continue }
+
             let item = item(at: path.item)
             cell.setup(view: viewProvider(element(at: path.item)), id: AnyHashable(item.differenceIdentifier))
         }
@@ -604,8 +618,7 @@ public class UICollectionHStack<
 
             CATransaction.begin()
             CATransaction.setCompletionBlock { [weak self] in
-                guard let self else { return }
-                guard self.dataUpdateGeneration == updateGeneration else { return }
+                guard let self, self.dataUpdateGeneration == updateGeneration else { return }
 
                 self.isDataUpdateInProgress = false
                 self.scheduleAlignedLeadingElementIDUpdate()
@@ -719,7 +732,17 @@ public class UICollectionHStack<
             size = itemSize ?? computeSizes(forWidth: bounds.width).itemSize
         }
 
-        return CGSize(width: max(size.width, 0), height: max(size.height, 0))
+        // UIKit can request metrics between the parent's resize and the child's
+        // bounds update. Keep those temporary attributes inside the actual viewport
+        // without replacing the measured size used when the transition finishes.
+        let contentInsets = collectionView.adjustedContentInset
+        let sectionInsets = collectionView.flowLayout.sectionInset
+        let availableHeight = collectionView.bounds.height
+            - contentInsets.top - contentInsets.bottom
+            - sectionInsets.top - sectionInsets.bottom
+        let height = availableHeight > 0 ? min(size.height, availableHeight.nextDown) : size.height
+
+        return CGSize(width: max(size.width, 0), height: max(height, 0))
     }
 
     // MARK: UIScrollViewDelegate
@@ -753,6 +776,7 @@ public class UICollectionHStack<
                 .min() ?? Int.max
 
             reachedLeading = minIndexPath != Int.max && minIndexPath / resolvedRows < columns
+
         case let .offset(offset):
             reachedLeading = contentOffset <= offset
         }
@@ -792,6 +816,7 @@ public class UICollectionHStack<
 
             let totalColumns = effectiveItemCount == 0 ? 0 : (effectiveItemCount - 1) / resolvedRows + 1
             reachedTrailing = maxIndexPath != Int.min && maxIndexPath / resolvedRows >= totalColumns - columns
+
         case let .offset(offset):
             let reachPosition = collectionView.contentSize.width - collectionView.bounds.width - offset
             reachedTrailing = contentOffset >= reachPosition
@@ -845,8 +870,7 @@ public class UICollectionHStack<
         guard alignedLeadingElementID != nil else { return }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self else { return }
-            guard self.alignedLeadingElementIDUpdateGeneration == updateGeneration else { return }
+            guard let self, self.alignedLeadingElementIDUpdateGeneration == updateGeneration else { return }
 
             self.updateAlignedLeadingElementID()
         }
@@ -854,23 +878,22 @@ public class UICollectionHStack<
 
     private func updateAlignedLeadingElementID() {
 
-        guard let alignedLeadingElementID else { return }
-        guard !collectionView.isDragging, !collectionView.isDecelerating else { return }
-        guard !isDataUpdateInProgress else { return }
+        guard let alignedLeadingElementID, !collectionView.isDragging, !collectionView.isDecelerating,
+              !isDataUpdateInProgress else { return }
 
         collectionView.layoutIfNeeded()
 
         let newID = alignedLeadingElementIDAtCurrentOffset()
 
         guard alignedLeadingElementID.wrappedValue != newID else { return }
+
         alignedLeadingElementID.wrappedValue = newID
     }
 
     private func alignedLeadingElementIDAtCurrentOffset() -> ID? {
 
-        guard collectionView.flowLayout is ColumnAlignedLayout else { return nil }
-        guard effectiveItemCount > 0, data.isNotEmpty else { return nil }
-        guard collectionView.bounds.width > 0, collectionView.bounds.height > 0 else { return nil }
+        guard collectionView.flowLayout is ColumnAlignedLayout, effectiveItemCount > 0, data.isNotEmpty, collectionView.bounds.width > 0,
+              collectionView.bounds.height > 0 else { return nil }
 
         let leadingEdge = collectionView.contentOffset.x + collectionView.flowLayout.sectionInset.left
         let displayScale = max(collectionView.traitCollection.displayScale, 1)
@@ -897,6 +920,7 @@ public class UICollectionHStack<
     public func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
         let prefetchingElements = indexPaths.compactMap { path -> Element? in
             guard (0 ..< effectiveItemCount).contains(path.item) else { return nil }
+
             return element(at: path.item)
         }
         onPrefetchingElements(prefetchingElements)
@@ -905,6 +929,7 @@ public class UICollectionHStack<
     public func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
         let cancellingElements = indexPaths.compactMap { path -> Element? in
             guard (0 ..< effectiveItemCount).contains(path.item) else { return nil }
+
             return element(at: path.item)
         }
         onCancelPrefetchingElements(cancellingElements)

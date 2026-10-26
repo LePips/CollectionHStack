@@ -24,6 +24,7 @@ struct ResizeAnimation {
             items.forEach { Self.remove(from: $0.layer) }
             return
         }
+
         for item in items {
             let layer = item.layer.presentation() ?? item.layer
             let reference = item.layer.presentation() == nil ? container : (container.presentation() ?? container)
@@ -34,14 +35,17 @@ struct ResizeAnimation {
 
     func apply(to items: [Item], in container: CALayer?) {
         guard !snapshots.isEmpty, let container else { return }
+
         for item in items {
             guard let snapshot = snapshots[ObjectIdentifier(item.layer)], snapshot.id == item.id else { continue }
+
             // Map viewport coordinates back into the item's current parent. This
             // also handles AppKit's flipped document view and restored scroll anchor.
             let target = item.layer.frame
             let source = container.convert(snapshot.frame, to: item.layer.superlayer)
             guard [source.width, source.height, target.width, target.height].allSatisfy({ $0.isFinite && $0 > 0 }),
                   [source.minX, source.minY, target.minX, target.minY].allSatisfy(\.isFinite) else { continue }
+
             Self.remove(from: item.layer)
             guard source != target else { continue }
 

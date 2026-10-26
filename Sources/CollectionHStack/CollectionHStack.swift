@@ -147,6 +147,7 @@ extension CollectionHStack: UIViewRepresentable {
         context: Context
     ) -> CGSize? {
         guard let width = proposal.width, width.isFiniteAndPositive else { return nil }
+
         return uiView.fittingSize(forWidth: width)
     }
 }

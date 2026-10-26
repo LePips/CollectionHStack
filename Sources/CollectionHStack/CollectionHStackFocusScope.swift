@@ -32,6 +32,7 @@ public struct CollectionHStackFocusScope<Content: View>: UIViewControllerReprese
         context: Context
     ) -> CGSize? {
         guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
+
         // Scroll views leave their scrolling axis unspecified. Ask the hosted
         // content for its height instead of accepting UIKit's zero-height default.
         return uiViewController.sizeThatFits(in: CGSize(
@@ -79,6 +80,7 @@ final class CollectionFocusScopeController<Content: View>: UIHostingController<C
                   collection.window === self.view.window,
                   self.contains(collection),
                   let system = UIFocusSystem.focusSystem(for: self), system.focusedItem === previous else { return }
+
             self.pendingCollection = collection
             defer { self.pendingCollection = nil }
             self.setNeedsFocusUpdate()

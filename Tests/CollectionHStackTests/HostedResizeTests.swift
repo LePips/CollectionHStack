@@ -19,7 +19,7 @@ struct CollectionHStackHostedResizeTests {
     }
 
     @Test(arguments: -1 ..< 4)
-    func hostedCollectionResizesAndStaysVirtualized(style: Int) async throws {
+    func `hosted collection resizes and stays virtualized`(style: Int) async throws {
         let host = UIHostingController(rootView: CollectionHStackResizeFixture(style: style))
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 1024, height: 1000))
         window.rootViewController = host
@@ -41,7 +41,8 @@ struct CollectionHStackHostedResizeTests {
                 expectedHeight = expectedWidth * 1.5
             } else {
                 let reference = UIHostingController(rootView: CompositeCell(style: style)
-                    .frame(width: expectedWidth).fixedSize(horizontal: false, vertical: true))
+                    .frame(width: expectedWidth)
+                    .fixedSize(horizontal: false, vertical: true))
                 expectedHeight = reference.sizeThatFits(in: CGSize(width: expectedWidth, height: 1000)).height
             }
             #expect(abs(item.size.width - expectedWidth) <= 0.1)

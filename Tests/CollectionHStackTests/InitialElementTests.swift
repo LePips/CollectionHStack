@@ -13,7 +13,7 @@ struct InitialElementTests {
     #endif
 
     @Test(arguments: 0 ..< 4)
-    func firstLayoutPositionsTargetImmediately(behaviorIndex: Int) async throws {
+    func `first layout positions target immediately`(behaviorIndex: Int) async throws {
         let behavior: CollectionHStackScrollBehavior = [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging][behaviorIndex]
         let configuration = configuration().scrollBehavior(behavior).initialElement(id: 107)
         let view = makeView(configuration)
@@ -32,7 +32,7 @@ struct InitialElementTests {
     }
 
     @Test(arguments: 0 ..< 4, [false, true])
-    func waitsForNonEmptyData(behaviorIndex: Int, populateBeforeFirstLayout: Bool) async throws {
+    func `waits for non empty data`(behaviorIndex: Int, populateBeforeFirstLayout: Bool) async throws {
         let behavior: CollectionHStackScrollBehavior = [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging][behaviorIndex]
         let view = makeView(configuration(data: []).scrollBehavior(behavior).initialElement(id: 107))
         // Empty updates must not consume the request, including one with no target.
@@ -63,7 +63,7 @@ struct InitialElementTests {
     }
 
     @Test(arguments: [false, true], [false, true])
-    func missingTargetIsNotRetriedWithoutIDChange(usePrefix: Bool, startsEmpty: Bool) {
+    func `missing target is not retried without ID change`(usePrefix: Bool, startsEmpty: Bool) {
         let initial = usePrefix
             ? configuration().initialElement(id: 107).dataPrefix(3)
             : configuration(data: Array(100 ... 105)).initialElement(id: 107)
@@ -79,7 +79,7 @@ struct InitialElementTests {
     }
 
     @Test
-    func unchangedIDDoesNotReapplyAfterUpdatesRedrawResizeOrRefill() {
+    func `unchanged ID does not reapply after updates redraw resize or refill`() {
         let initial = configuration().initialElement(id: 107)
         let view = makeView(initial)
         let close = present(view)
@@ -100,7 +100,7 @@ struct InitialElementTests {
     }
 
     @Test(arguments: 0 ..< 4)
-    func nonNilIDTransitionsReposition(behaviorIndex: Int) async throws {
+    func `non nil ID transitions reposition`(behaviorIndex: Int) async throws {
         let behavior: CollectionHStackScrollBehavior = [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging][behaviorIndex]
         let view = makeView(configuration().scrollBehavior(behavior).initialElement(id: nil))
         let close = present(view)
@@ -127,7 +127,7 @@ struct InitialElementTests {
     }
 
     @Test
-    func nilThenSameIDTriggersAnotherEvaluation() throws {
+    func `nil then same ID triggers another evaluation`() throws {
         let view = makeView(configuration().initialElement(id: 107))
         let close = present(view)
         defer { close() }
@@ -142,7 +142,7 @@ struct InitialElementTests {
     }
 
     @Test
-    func changedIDWaitsForNonEmptyData() throws {
+    func `changed ID waits for non empty data`() throws {
         let view = makeView(configuration().initialElement(id: 107))
         let close = present(view)
         defer { close() }
@@ -157,7 +157,7 @@ struct InitialElementTests {
     }
 
     @Test
-    func changedIDUsesUpdatedData() throws {
+    func `changed ID uses updated data`() throws {
         let view = makeView(configuration().initialElement(id: 107))
         let close = present(view)
         defer { close() }
@@ -168,7 +168,7 @@ struct InitialElementTests {
     }
 
     @Test(arguments: [nil, 115, 999] as [Int?])
-    func changedIDReplacesPendingTarget(id: Int?) throws {
+    func `changed ID replaces pending target`(id: Int?) throws {
         let view = makeView(configuration().initialElement(id: 107))
         update(view, configuration().initialElement(id: id))
         let close = present(view)
@@ -179,7 +179,7 @@ struct InitialElementTests {
     }
 
     @Test
-    func pendingTargetUsesIdentityAfterReordering() throws {
+    func `pending target uses identity after reordering`() throws {
         let view = makeView(configuration().initialElement(id: 107))
         update(view, configuration(data: [100, 101, 102, 103, 107] + Array(108 ... 120)).initialElement(id: 107))
         let close = present(view)
@@ -188,7 +188,7 @@ struct InitialElementTests {
     }
 
     @Test
-    func removedPendingTargetDoesNotScrollToItsOldIndex() {
+    func `removed pending target does not scroll to its old index`() {
         let view = makeView(configuration().initialElement(id: 107))
         update(view, configuration(data: Array(110 ... 130)).initialElement(id: 107))
         let close = present(view)
@@ -197,7 +197,7 @@ struct InitialElementTests {
     }
 
     @Test(arguments: [100, 120])
-    func targetsAtContentEdgesAreClamped(id: Int) {
+    func `targets at content edges are clamped`(id: Int) {
         let view = makeView(configuration().scrollBehavior(.continuous).initialElement(id: id))
         let close = present(view)
         defer { close() }
@@ -212,7 +212,7 @@ struct InitialElementTests {
 
     #if canImport(UIKit)
     @Test
-    func fullPagingContinuesFromInitialPage() throws {
+    func `full paging continues from initial page`() throws {
         let view = makeView(configuration().scrollBehavior(.fullPaging).initialElement(id: 115))
         let close = present(view)
         defer { close() }
@@ -230,7 +230,9 @@ struct InitialElementTests {
 
     private func configuration(data: [Int] = Array(100 ... 120)) -> Configuration {
         CollectionHStack(uniqueElements: data, id: \.self, columns: 2, rows: 2) { _ in ColorContent() }
-            .insets(horizontal: 20).itemSpacing(10).scrollBehavior(.continuousLeadingEdge)
+            .insets(horizontal: 20)
+            .itemSpacing(10)
+            .scrollBehavior(.continuousLeadingEdge)
     }
 
     private func makeView(_ configuration: Configuration) -> NativeView {

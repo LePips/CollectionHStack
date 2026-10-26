@@ -3,9 +3,12 @@ import CollectionHStack
 import SwiftUI
 
 struct FocusBehaviorView: View {
-    @State private var presentation = UUID()
-    @State private var selection = "Select any card"
-    @StateObject private var focusProbe = FocusExampleProbe()
+    @State
+    private var presentation = UUID()
+    @State
+    private var selection = "Select any card"
+    @StateObject
+    private var focusProbe = FocusExampleProbe()
 
     var body: some View {
         CollectionHStackFocusScope {

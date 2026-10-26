@@ -6,7 +6,7 @@ import Testing
 @MainActor
 struct CompositeCellSizingTests {
     @Test(arguments: 0 ..< 4, 0 ..< 3)
-    func resizingMeasuresArtworkAndTextAtTheNewWidth(style: Int, layoutIndex: Int) throws {
+    func `resizing measures artwork and text at the new width`(style: Int, layoutIndex: Int) throws {
         let layout: CollectionHStackLayout = [
             .grid(columns: 1, rows: 1, columnTrailingInset: 0),
             .grid(columns: 3, rows: 2, columnTrailingInset: 0),
@@ -14,7 +14,9 @@ struct CompositeCellSizingTests {
         ][layoutIndex]
         let configuration = CollectionHStack(uniqueElements: Array(0 ..< 20), layout: layout) { _ in
             CompositeCell(style: style)
-        }.insets(horizontal: 18, vertical: 5).itemSpacing(10)
+        }
+        .insets(horizontal: 18, vertical: 5)
+        .itemSpacing(10)
         let metrics = LayoutMetrics(layout: layout, insets: configuration.insets, itemSpacing: 10)
         #if os(macOS)
         let stack = NSCollectionHStack(configuration: configuration)

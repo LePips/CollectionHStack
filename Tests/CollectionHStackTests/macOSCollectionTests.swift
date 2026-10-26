@@ -9,7 +9,7 @@ import Testing
 struct MacOSCollectionHStackTests {
 
     @Test(arguments: 0 ..< 3)
-    func measurementRevisionRefreshesCachedWidthsAndIntrinsicHeight(layoutIndex: Int) {
+    func `measurement revision refreshes cached widths and intrinsic height`(layoutIndex: Int) {
         let layout: CollectionHStackLayout = [
             .grid(columns: 2, rows: 2, columnTrailingInset: 0),
             .minimumWidth(columnWidth: 100, rows: 2),
@@ -57,13 +57,15 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func fractionalMinimumWidthCachesMeasurementsAndRefreshesWhenFractionChanges() {
+    func `fractional minimum width caches measurements and refreshes when fraction changes`() {
         var measurements = 0
         func configuration(fraction: CGFloat) -> CollectionHStack<Int, [Int], Int, some View> {
             CollectionHStack(count: 10000, minWidth: 100, columnFraction: fraction, rows: 2) { _ in
                 measurements += 1
                 return Color.blue.frame(height: 50)
-            }.insets(horizontal: 0).itemSpacing(10)
+            }
+            .insets(horizontal: 0)
+            .itemSpacing(10)
         }
         let view = NSCollectionHStack(configuration: configuration(fraction: 0.5))
         defer { view.disconnect() }
@@ -81,12 +83,15 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func measurementsAreCachedAndRedrawRemeasures() {
+    func `measurements are cached and redraw remeasures`() {
         let proxy = CollectionHStackProxy()
         let model = SizeModel()
         let configuration = CollectionHStack(count: 10000, columns: 2) { _ in
             Color.blue.frame(height: model.height)
-        }.insets(horizontal: 0).itemSpacing(10).proxy(proxy)
+        }
+        .insets(horizontal: 0)
+        .itemSpacing(10)
+        .proxy(proxy)
 
         let view = NSCollectionHStack(configuration: configuration)
         #expect(view.fittingSize(forWidth: 210).height == 50)
@@ -101,12 +106,14 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func nativeCollectionStaysVirtualizedAcrossResizeAndDistantScroll() async throws {
+    func `native collection stays virtualized across resize and distant scroll`() async throws {
         _ = NSApplication.shared
         let configuration = CollectionHStack(count: 10000, columns: 3, rows: 2) { _ in
             Color.blue.aspectRatio(2 / 3, contentMode: .fit)
-        }.insets(horizontal: 20, vertical: 5).itemSpacing(10)
-            .scrollBehavior(.continuousLeadingEdge)
+        }
+        .insets(horizontal: 20, vertical: 5)
+        .itemSpacing(10)
+        .scrollBehavior(.continuousLeadingEdge)
         let view = NSCollectionHStack(configuration: configuration)
         let window = makeWindow(view)
         defer { view.disconnect()
@@ -135,12 +142,14 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func representableNegotiatesHeightInSwiftUI() async throws {
+    func `representable negotiates height in swift UI`() async throws {
         _ = NSApplication.shared
         let host = NSHostingController(rootView: VStack(spacing: 0) {
             CollectionHStack(count: 10000, columns: 2) { _ in
                 Color.blue.aspectRatio(2, contentMode: .fit)
-            }.insets(horizontal: 0).itemSpacing(10)
+            }
+            .insets(horizontal: 0)
+            .itemSpacing(10)
             Spacer(minLength: 0)
         })
         let window = NSWindow(
@@ -162,7 +171,7 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func collidingIDsSlicesAndMixedUpdatesKeepIdentity() {
+    func `colliding I ds slices and mixed updates keep identity`() {
         let data = (0 ..< 10).map(CollidingID.init)
         func configuration(_ values: ArraySlice<CollidingID>) -> CollectionHStack<CollidingID, ArraySlice<CollidingID>, CollidingID, Text> {
             CollectionHStack(uniqueElements: values, id: \.self, columns: 2) { Text("\($0.value)") }
@@ -183,7 +192,7 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func unchangedIDsRefreshVisibleContentWhenSliceIndicesMove() async throws {
+    func `unchanged I ds refresh visible content when slice indices move`() async throws {
         struct Value {
             let id: Int
             let content: String
@@ -216,7 +225,7 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func layoutVariantsPreserveColumnMajorOrdering() throws {
+    func `layout variants preserve column major ordering`() throws {
         let layouts: [CollectionHStackLayout] = [
             .grid(columns: 2.5, rows: 2, columnTrailingInset: 0),
             .minimumWidth(columnWidth: 80, rows: 2),
@@ -226,7 +235,9 @@ struct MacOSCollectionHStackTests {
         for layout in layouts {
             let view = NSCollectionHStack(configuration: CollectionHStack(uniqueElements: [0, 1, 2, 3], layout: layout) {
                 Color.blue.frame(width: CGFloat(80 + $0 * 10), height: 40)
-            }.insets(horizontal: 10, vertical: 5).itemSpacing(10))
+            }
+            .insets(horizontal: 10, vertical: 5)
+            .itemSpacing(10))
             view.frame = CGRect(x: 0, y: 0, width: 300, height: view.fittingSize(forWidth: 300).height)
             view.layoutSubtreeIfNeeded()
             let first = try #require(view.collectionLayout.layoutAttributesForItem(at: IndexPath(item: 0, section: 0)))
@@ -240,7 +251,7 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func proxyBindingPrefixCarouselAndCallbacks() async throws {
+    func `proxy binding prefix carousel and callbacks`() async throws {
         _ = NSApplication.shared
         let proxy = CollectionHStackProxy()
         var aligned: Int?
@@ -248,7 +259,10 @@ struct MacOSCollectionHStackTests {
         var trailing = 0
         var prefetched = 0
         let configuration = CollectionHStack(count: 20, columns: 2, rows: 2) { _ in Color.blue.frame(height: 40) }
-            .insets(horizontal: 10).itemSpacing(10).scrollBehavior(.columnPaging).proxy(proxy)
+            .insets(horizontal: 10)
+            .itemSpacing(10)
+            .scrollBehavior(.columnPaging)
+            .proxy(proxy)
             .alignedLeadingElement(id: Binding(get: { aligned }, set: { aligned = $0 }))
             .onReachedLeadingEdge { leading += 1 }
             .onReachedTrailingEdge { trailing += 1 }
@@ -283,11 +297,14 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func allScrollBehaviorsRespectTheirPagingContract() {
+    func `all scroll behaviors respect their paging contract`() {
         for behavior: CollectionHStackScrollBehavior in [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging] {
             let view = NSCollectionHStack(configuration: CollectionHStack(count: 100, columns: 2) { _ in
                 Color.blue.frame(height: 40)
-            }.insets(horizontal: 10).itemSpacing(10).scrollBehavior(behavior))
+            }
+            .insets(horizontal: 10)
+            .itemSpacing(10)
+            .scrollBehavior(behavior))
             view.frame = CGRect(x: 0, y: 0, width: 300, height: 40)
             view.layoutSubtreeIfNeeded()
             let result = view.settledOffset(proposed: 700, gestureStart: 0)
@@ -302,7 +319,7 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func hostingViewsAreReused() {
+    func `hosting views are reused`() {
         let item = HostingCollectionViewItem()
         item.configure(Text("First"), id: 1)
         let host = item.view.subviews.first
@@ -313,12 +330,15 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func alignmentScrollsThroughIntermediateOffsets() async throws {
+    func `alignment scrolls through intermediate offsets`() async throws {
         for behavior: CollectionHStackScrollBehavior in [.continuousLeadingEdge, .columnPaging, .fullPaging] {
             _ = NSApplication.shared
             let view = NSCollectionHStack(configuration: CollectionHStack(count: 100, columns: 2) { _ in
                 Color.blue.frame(height: 40)
-            }.insets(horizontal: 10).itemSpacing(10).scrollBehavior(behavior))
+            }
+            .insets(horizontal: 10)
+            .itemSpacing(10)
+            .scrollBehavior(behavior))
             let window = makeWindow(view)
             defer {
                 view.disconnect()
@@ -349,11 +369,14 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func activeGestureDefersAlignmentAndInterruptsAnimation() async throws {
+    func `active gesture defers alignment and interrupts animation`() async throws {
         _ = NSApplication.shared
         let view = NSCollectionHStack(configuration: CollectionHStack(count: 100, columns: 2) { _ in
             Color.blue.frame(height: 40)
-        }.insets(horizontal: 10).itemSpacing(10).scrollBehavior(.continuousLeadingEdge))
+        }
+        .insets(horizontal: 10)
+        .itemSpacing(10)
+        .scrollBehavior(.continuousLeadingEdge))
         let window = makeWindow(view)
         defer {
             view.disconnect()
@@ -391,12 +414,14 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func visibleLayoutAttributesAreIndependentOfTotalItemCount() {
+    func `visible layout attributes are independent of total item count`() {
         var expectedAttributes: Int?
         for count in [100, 10000, 100_000] {
             let view = NSCollectionHStack(configuration: CollectionHStack(count: count, columns: 3) { _ in
                 Color.blue.frame(height: 40)
-            }.insets(horizontal: 10).itemSpacing(10))
+            }
+            .insets(horizontal: 10)
+            .itemSpacing(10))
             view.frame = CGRect(x: 0, y: 0, width: 500, height: 200)
             view.layoutSubtreeIfNeeded()
             let attributes = view.collectionLayout.layoutAttributesForElements(in: CGRect(x: 0, y: 0, width: 500, height: 200)).count

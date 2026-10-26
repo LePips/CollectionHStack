@@ -7,16 +7,19 @@ import SwiftUI
 @MainActor
 final class FocusExampleProbe: ObservableObject {
     let enabled = ProcessInfo.processInfo.arguments.contains("--focus-probe")
-    @Published private(set) var events: [String] = []
+    @Published
+    private(set) var events: [String] = []
     private var observer: NSObjectProtocol?
 
     init() {
         guard enabled else { return }
+
         observer = NotificationCenter.default
             .addObserver(forName: UIFocusSystem.didUpdateNotification, object: nil, queue: .main) { [weak self] notification in
                 MainActor.assumeIsolated {
                     guard let context = notification.userInfo?[UIFocusSystem.focusUpdateContextUserInfoKey] as? UIFocusUpdateContext
                     else { return }
+
                     self?.record(context.nextFocusedItem)
                 }
             }

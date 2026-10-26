@@ -31,6 +31,7 @@ extension AppStoreAppsView {
                                         .font(.title3)
                                 }
                                 .frame(height: 40)
+
                             case 1:
                                 HStack(spacing: 20) {
                                     Image(systemName: "figure.run")
@@ -42,6 +43,7 @@ extension AppStoreAppsView {
                                         .font(.title3)
                                 }
                                 .frame(height: 40)
+
                             case 2:
                                 HStack(spacing: 20) {
                                     Image(systemName: "balloon.2.fill")
@@ -53,6 +55,7 @@ extension AppStoreAppsView {
                                         .font(.title3)
                                 }
                                 .frame(height: 40)
+
                             case 3:
                                 HStack(spacing: 20) {
                                     Image(systemName: "camera.fill")
@@ -64,6 +67,7 @@ extension AppStoreAppsView {
                                         .font(.title3)
                                 }
                                 .frame(height: 40)
+
                             default:
                                 EmptyView()
                             }

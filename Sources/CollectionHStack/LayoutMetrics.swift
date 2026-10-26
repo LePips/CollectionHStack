@@ -23,9 +23,11 @@ struct LayoutMetrics {
     /// the next column, so only whole-column layouts consume the trailing inset.
     func itemWidth(for availableWidth: CGFloat) -> CGFloat? {
         guard availableWidth.isFiniteAndPositive else { return 0 }
+
         switch layout {
         case let .grid(columns, _, trailingInset):
             return itemWidth(for: availableWidth, columns: columns.positiveFinite(or: 1), trailingInset: trailingInset)
+
         case let .minimumWidth(minimum, _, fraction):
             let minimum = minimum.positiveFinite(or: 1)
             let contentWidth = nonnegativeFinite(availableWidth - insets.leading - insets.trailing)
@@ -42,6 +44,7 @@ struct LayoutMetrics {
             // Subtracting insets and dividing can undershoot by one floating-point
             // step even when the minimum-width geometry above fits exactly.
             return columns > 1 ? max(minimum, width) : width
+
         case .selfSizingSameSize, .selfSizingVariadicWidth:
             return nil
         }

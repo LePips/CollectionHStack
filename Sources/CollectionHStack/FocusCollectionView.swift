@@ -29,6 +29,7 @@ final class FocusCollectionView: UICollectionView {
 
     func entryFocusEnvironments() -> [UIFocusEnvironment] {
         guard !isResolvingEntry else { return [] }
+
         isResolvingEntry = true
         defer { isResolvingEntry = false }
         let identities = preferredEntryIdentities()
@@ -54,12 +55,14 @@ final class FocusCollectionView: UICollectionView {
         case .lastFocused:
             let leading = leadingIdentities()
             guard let lastFocusedIdentity, indexPathForIdentity(lastFocusedIdentity) != nil else { return leading }
+
             return [lastFocusedIdentity] + leading.filter { $0 != lastFocusedIdentity }
         }
     }
 
     private func leadingIdentities() -> [AnyHashable] {
         guard let layout = collectionViewLayout as? UICollectionViewFlowLayout else { return [] }
+
         let visibleBounds = bounds.inset(by: adjustedContentInset)
         let rightToLeft = effectiveUserInterfaceLayoutDirection == .rightToLeft
         let edge = rightToLeft ? visibleBounds.maxX - layout.sectionInset.right : visibleBounds.minX + layout.sectionInset.left

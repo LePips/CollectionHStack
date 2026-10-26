@@ -2,10 +2,12 @@ import SwiftUI
 
 struct ContentView: View {
     #if os(macOS) || os(iOS)
-    @State private var selection: ExamplePage? = .playground
+    @State
+    private var selection: ExamplePage? = .playground
     #endif
     #if os(iOS)
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State
+    private var columnVisibility: NavigationSplitViewVisibility = .all
     #endif
 
     var body: some View {

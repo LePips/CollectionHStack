@@ -25,6 +25,7 @@ public class CollectionHStackProxy: ObservableObject {
     @MainActor
     public func scrollTo(id: some Hashable, animated: Bool = true) {
         guard let index = collectionView?.index(id: id) else { return }
+
         scrollTo(index: index, animated: animated)
     }
 

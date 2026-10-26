@@ -8,7 +8,7 @@ import Testing
 struct ItemRemeasurementTests {
 
     @Test
-    func titleToggleRemeasuresUsingTheLatestViewAndPreservesTheCollection() async throws {
+    func `title toggle remeasures using the latest view and preserves the collection`() async throws {
         let model = RemeasurementModel()
         let fixture = RemeasurementFixture(model: model)
         let host = HostedRemeasurement(fixture)
@@ -38,7 +38,7 @@ struct ItemRemeasurementTests {
     }
 
     @Test
-    func currentValuePublisherSettlesAndChangingTheSourceCancelsTheOldSubscription() async throws {
+    func `current value publisher settles and changing the source cancels the old subscription`() async throws {
         let model = RemeasurementModel()
         let host = HostedRemeasurement(RemeasurementFixture(model: model, currentValue: true))
         defer {
@@ -74,7 +74,7 @@ struct ItemRemeasurementTests {
     }
 
     @Test
-    func oneShotPublisherSettlesAfterItsInitialInvalidation() async throws {
+    func `one shot publisher settles after its initial invalidation`() async throws {
         let model = RemeasurementModel()
         let host = HostedRemeasurement(
             CollectionHStack(count: 4, columns: 2) { _ in
@@ -122,6 +122,7 @@ private struct RemeasurementFixture: View {
         guard currentValue else {
             return model.trigger.eraseToAnyPublisher()
         }
+
         let alternate = model.useAlternate
         return (alternate ? model.alternate : model.current)
             .handleEvents(

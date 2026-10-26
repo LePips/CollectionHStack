@@ -18,6 +18,7 @@ struct ItemSizeCache {
             return size
         }
         guard width.isFiniteAndPositive else { return .zero }
+
         if let index = widthSizes.firstIndex(where: { $0.width == width }) {
             let size = widthSizes.remove(at: index)
             widthSizes.append(size)

@@ -7,7 +7,7 @@ import Testing
 @MainActor
 struct ResizeAnimationTests {
     @Test(arguments: [CGFloat(0), CGFloat(0.5)])
-    func transitionPreservesStartingFrameAndFinalModel(anchor: CGFloat) throws {
+    func `transition preserves starting frame and final model`(anchor: CGFloat) throws {
         let container = CALayer()
         let layer = CALayer()
         layer.anchorPoint = CGPoint(x: anchor, y: anchor)
@@ -32,7 +32,7 @@ struct ResizeAnimationTests {
     }
 
     @Test
-    func reusedLayersDoNotAnimatePreviousIdentity() {
+    func `reused layers do not animate previous identity`() {
         let container = CALayer()
         let layer = CALayer()
         container.addSublayer(layer)
@@ -44,7 +44,7 @@ struct ResizeAnimationTests {
     }
 
     @Test(arguments: [CGFloat(0), CGFloat(0.5), CGFloat(0.25)])
-    func breakpointAnimatesIntermediateFramesAndRetargets(fraction: CGFloat) async throws {
+    func `breakpoint animates intermediate frames and retargets`(fraction: CGFloat) async throws {
         let breakpoint: CGFloat = fraction == 0 ? 320 : (fraction == 0.5 ? 270 : 245)
         let originalWidth = (breakpoint - 11) / 2
         let fixture = ResizeFixture(count: 10000, animated: true, fraction: fraction)
@@ -69,7 +69,7 @@ struct ResizeAnimationTests {
         let retarget = try #require(layer.animation(forKey: ResizeAnimation.key) as? CABasicAnimation)
         let from = try #require(retarget.fromValue as? NSValue).caTransform3DValue
         #expect(abs(from.m11 * layer.bounds.width - intermediate) < 3, "Retarget from the displayed size")
-        #expect(layer.animationKeys()?.filter { $0 == ResizeAnimation.key }.count == 1)
+        #expect(layer.animationKeys()?.count(where: { $0 == ResizeAnimation.key }) == 1)
         try await Task.sleep(for: .milliseconds(300))
         // Core Animation can retain a completed key until its next transaction;
         // the rendered frame must already have reached the final model geometry.
@@ -78,7 +78,7 @@ struct ResizeAnimationTests {
     }
 
     @Test
-    func changingSizingConfigurationAnimatesWithoutChangingContainerWidth() async throws {
+    func `changing sizing configuration animates without changing container width`() async throws {
         let fixture = ResizeFixture(count: 10000, animated: true)
         defer { fixture.close() }
         fixture.resize(320)
@@ -96,7 +96,7 @@ struct ResizeAnimationTests {
     }
 
     @Test
-    func sustainedResizingSettlesAtLatestSize() async throws {
+    func `sustained resizing settles at latest size`() async throws {
         let fixture = ResizeFixture(count: 10000, animated: true, fraction: 0.5)
         defer { fixture.close() }
         fixture.resize(320)
@@ -113,7 +113,7 @@ struct ResizeAnimationTests {
     }
 
     @Test
-    func optingOutAndReuseClearActiveAnimation() async throws {
+    func `opting out and reuse clear active animation`() async throws {
         let fixture = ResizeFixture(count: 10000, animated: true)
         defer { fixture.close() }
         fixture.resize(319)
@@ -140,7 +140,7 @@ struct ResizeAnimationTests {
     }
 
     @Test
-    func repeatedResizePerformanceStaysBoundedByVisibleItems() async throws {
+    func `repeated resize performance stays bounded by visible items`() async throws {
         for count in [100, 10000] {
             for animated in [false, true] {
                 let fixture = ResizeFixture(count: count, animated: animated)
