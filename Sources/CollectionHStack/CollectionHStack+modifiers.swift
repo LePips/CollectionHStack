@@ -50,6 +50,14 @@ public extension CollectionHStack {
         copy(modifying: \.clipsToBounds, to: value)
     }
 
+    #if canImport(UIKit)
+    /// Controls UIKit's automatic safe-area adjustment. Use `.never` when the
+    /// containing view already positions the stack inside its safe area.
+    func contentInsetAdjustmentBehavior(_ behavior: UIScrollView.ContentInsetAdjustmentBehavior) -> Self {
+        copy(modifying: \.contentInsetAdjustmentBehavior, to: behavior)
+    }
+    #endif
+
     func dataPrefix(_ prefix: Int?) -> Self {
         copy(modifying: \.dataPrefix, to: prefix)
     }

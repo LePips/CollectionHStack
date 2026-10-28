@@ -22,7 +22,7 @@ public enum CollectionHStackScrollBehavior {
         case .columnPaging:
             ColumnPagingFlowLayout()
         case .continuous:
-            UICollectionViewFlowLayout()
+            CollectionHStackFlowLayout()
         case .continuousLeadingEdge:
             ContinuousLeadingEdgeFlowLayout()
         case .fullPaging:

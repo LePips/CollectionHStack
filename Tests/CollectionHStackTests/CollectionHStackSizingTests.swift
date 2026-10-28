@@ -326,7 +326,7 @@ struct CollectionHStackSizingTests {
             sizeForItemAt: IndexPath(item: 0, section: 0)
         )
 
-        let proposedSize = stack.fittingSize(forWidth: 506)
+        let proposedSize = stack.fittingSize(forProposedWidth: 506)
         let liveSizeAfterProposal = stack.collectionView(
             collectionView,
             layout: collectionView.collectionViewLayout,

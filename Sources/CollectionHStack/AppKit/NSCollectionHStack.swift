@@ -71,6 +71,7 @@ public final class NSCollectionHStack<
 
     private var itemCount = 0
     private var itemSizeCache = ItemSizeCache()
+    private var measurer = ContentMeasurer<Content>()
     private var variableSizes: [ID: CGSize] = [:]
     private var cachedSize: (width: CGFloat, item: CGSize, height: CGFloat)?
     private var appliedWidth: CGFloat?
@@ -280,6 +281,7 @@ public final class NSCollectionHStack<
 
     private func invalidateSizing() {
         itemSizeCache = ItemSizeCache()
+        measurer = ContentMeasurer()
         cachedSize = nil
         variableSizes.removeAll(keepingCapacity: true)
         appliedWidth = nil
@@ -318,7 +320,7 @@ public final class NSCollectionHStack<
 
         return itemSizeCache.size(width: width) {
             let element = configuration.data[configuration.data.startIndex]
-            return measuredContentSize(configuration.viewProvider(element), width: width)
+            return measurer.size(of: configuration.viewProvider(element), identity: AnyHashable(ids[0]), width: width)
         }
     }
 
@@ -362,7 +364,7 @@ public final class NSCollectionHStack<
                 }
                 guard let element = element(at: index, id: item.id) else { return nil }
 
-                let size = measuredContentSize(configuration.viewProvider(element))
+                let size = measurer.size(of: configuration.viewProvider(element), identity: AnyHashable(item.id), width: nil)
                 variableSizes[item.id] = size
                 return size
             }

@@ -1,18 +1,19 @@
 #if canImport(UIKit)
 import UIKit
 
-class FullPagingFlowLayout: UICollectionViewFlowLayout {
+class FullPagingFlowLayout: CollectionHStackFlowLayout {
 
     // necessary for cases when (total columns) % (columns per page) != 0
     private var isAtLast: Bool = false
     private var pageIndex: Int = 0
 
+    var pageSize: CGFloat {
+        viewportBounds(at: .zero).width - (sectionInset.left - renderingInsets.left) * 2 + minimumInteritemSpacing
+    }
+
     /// Seeds paging after the collection is initially positioned away from page zero.
     func synchronizePageWithContentOffset() {
-        guard let collectionView else { return }
-
-        let pageSize = collectionView.bounds.width - sectionInset.left * 2 + minimumInteritemSpacing
-        guard pageSize.isFiniteAndPositive else { return }
+        guard let collectionView, pageSize.isFiniteAndPositive else { return }
 
         let maximum = max(0, collectionView.contentSize.width - collectionView.bounds.width)
         let offset = collectionView.contentOffset.x.clamped(to: 0 ... maximum)
@@ -39,10 +40,6 @@ class FullPagingFlowLayout: UICollectionViewFlowLayout {
             pageIndex = 0
             return proposedContentOffset
         }
-
-        let itemSpacing = collectionView!.flowLayout.minimumInteritemSpacing
-        let leadingInset = collectionView!.flowLayout.sectionInset.left
-        let pageSize = collectionView!.bounds.width - (leadingInset * 2) + itemSpacing
 
         // if not staying at last, then only decrementing
         if isAtLast {

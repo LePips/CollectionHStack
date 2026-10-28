@@ -202,12 +202,4 @@ extension EdgeInsets {
         NSEdgeInsets(top: top, left: leading, bottom: bottom, right: trailing)
     }
 }
-
-func measuredContentSize(_ content: some View, width: CGFloat? = nil) -> CGSize {
-    let measurement = ContentMeasurement()
-    let root = ContentMeasurementLayout(width: width, measurement: measurement) { content.frame(width: width) }
-    let host = NSHostingView(rootView: root)
-    _ = host.fittingSize
-    return CGSize(width: nonnegativeFinite(measurement.size.width), height: nonnegativeFinite(measurement.size.height))
-}
 #endif

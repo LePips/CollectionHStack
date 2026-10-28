@@ -8,7 +8,7 @@ import UIKit
 /// Column Center Scroll Behavior:
 ///   If the proposed target content offset is less than half of the leading columns's center, scrolling will
 ///   with that columns's leading edge. Otherwise, scrolling will align with the next columns's leading edge.
-class ContinuousLeadingEdgeFlowLayout: UICollectionViewFlowLayout, ColumnAlignedLayout {
+class ContinuousLeadingEdgeFlowLayout: CollectionHStackFlowLayout, ColumnAlignedLayout {
 
     var rows: Int = 1
 
@@ -26,12 +26,7 @@ class ContinuousLeadingEdgeFlowLayout: UICollectionViewFlowLayout, ColumnAligned
         withScrollingVelocity velocity: CGPoint
     ) -> CGPoint {
 
-        let targetRect = CGRect(
-            x: proposedContentOffset.x,
-            y: 0,
-            width: collectionView!.bounds.size.width,
-            height: collectionView!.bounds.size.height
-        )
+        let targetRect = viewportBounds(at: proposedContentOffset)
 
         let layoutAttributes = layoutAttributesForElements(in: targetRect)!
 
@@ -54,7 +49,7 @@ class ContinuousLeadingEdgeFlowLayout: UICollectionViewFlowLayout, ColumnAligned
         // TODO: remove when allowing item sizes > collection view width
         guard startOfColumnAttributes.count > 1 else { return proposedContentOffset }
 
-        let m: CGFloat = if proposedContentOffset.x > startOfColumnAttributes[0].center.x {
+        let m: CGFloat = if targetRect.minX > startOfColumnAttributes[0].center.x {
             startOfColumnAttributes[1].frame.minX
         } else {
             startOfColumnAttributes[0].frame.minX

@@ -23,6 +23,9 @@ public struct CollectionHStack<
     var allowScrolling: Bool
     var animatesResizing = false
     var clipsToBounds: Bool
+    #if canImport(UIKit)
+    var contentInsetAdjustmentBehavior: UIScrollView.ContentInsetAdjustmentBehavior = .automatic
+    #endif
     let data: Data
     var dataPrefix: Int?
     let didScrollToItems: ([Element]) -> Void
@@ -137,8 +140,10 @@ extension CollectionHStack: UIViewRepresentable {
             insets: insets,
             itemSpacing: itemSpacing,
             itemMeasurementRevision: itemMeasurementRevision,
-            viewProvider: viewProvider
+            viewProvider: viewProvider,
+            defersContentRefresh: true
         )
+        view.prepareForLayout()
     }
 
     public func sizeThatFits(
@@ -148,7 +153,7 @@ extension CollectionHStack: UIViewRepresentable {
     ) -> CGSize? {
         guard let width = proposal.width, width.isFiniteAndPositive else { return nil }
 
-        return uiView.fittingSize(forWidth: width)
+        return uiView.fittingSize(forProposedWidth: width)
     }
 }
 #endif

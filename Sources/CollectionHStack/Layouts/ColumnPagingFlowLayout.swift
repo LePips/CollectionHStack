@@ -1,7 +1,7 @@
 #if canImport(UIKit)
 import UIKit
 
-class ColumnPagingFlowLayout: UICollectionViewFlowLayout, ColumnAlignedLayout {
+class ColumnPagingFlowLayout: CollectionHStackFlowLayout, ColumnAlignedLayout {
 
     var rows: Int = 1
 
@@ -10,12 +10,7 @@ class ColumnPagingFlowLayout: UICollectionViewFlowLayout, ColumnAlignedLayout {
         withScrollingVelocity velocity: CGPoint
     ) -> CGPoint {
 
-        let targetRect = CGRect(
-            x: collectionView!.contentOffset.x,
-            y: 0,
-            width: collectionView!.bounds.size.width,
-            height: collectionView!.bounds.size.height
-        )
+        let targetRect = viewportBounds(at: collectionView!.contentOffset)
 
         let layoutAttributes = layoutAttributesForElements(in: targetRect)!
 
@@ -34,7 +29,7 @@ class ColumnPagingFlowLayout: UICollectionViewFlowLayout, ColumnAlignedLayout {
         } else if velocity.x < 0 {
             startOfColumnAttributes[0].frame.minX
         } else {
-            if proposedContentOffset.x > layoutAttributes[0].center.x {
+            if proposedContentOffset.x + renderingInsets.left > layoutAttributes[0].center.x {
                 startOfColumnAttributes[1].frame.minX
             } else {
                 startOfColumnAttributes[0].frame.minX
