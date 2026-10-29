@@ -12,11 +12,6 @@ public extension CollectionHStack {
         }
     }
 
-    // TODO: probably remove behavior
-//    func _animatesResizing(_ enabled: Bool) -> Self {
-//        copy(modifying: \.animatesResizing, to: enabled)
-//    }
-
     /// Positions the collection at this element whenever the ID changes to a non-nil value.
     ///
     /// A non-nil ID supplied when the view is created also requests positioning.
@@ -61,11 +56,6 @@ public extension CollectionHStack {
     func dataPrefix(_ prefix: Int?) -> Self {
         copy(modifying: \.dataPrefix, to: prefix)
     }
-
-    // TODO: add once behavior defined
-//    func didScrollToElements(_ action: @escaping ([Element]) -> Void) -> Self {
-//        copy(modifying: \.didScrollToElements, to: action)
-//    }
 
     func insets(_ insets: EdgeInsets) -> Self {
         copy(modifying: \.insets, to: insets)

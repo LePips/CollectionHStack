@@ -100,7 +100,6 @@ final class AdaptiveRowsState {
 
 @MainActor
 final class AdaptiveRowsFixture {
-    let rowCount: Int
     let state = AdaptiveRowsState()
     let host: UIHostingController<AnyView>
     let window: UIWindow
@@ -113,7 +112,6 @@ final class AdaptiveRowsFixture {
     }
 
     init(perFrameEnvironment: Bool = true, rowCount: Int = 6, height: CGFloat = 1600) {
-        self.rowCount = rowCount
         host = UIHostingController(rootView: AnyView(AdaptiveRowsRoot(
             state: state,
             rowCount: rowCount,

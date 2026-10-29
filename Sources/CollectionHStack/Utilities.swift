@@ -34,28 +34,8 @@ func nonnegativeFinite(_ value: CGFloat) -> CGFloat {
 // MARK: CGFloat/Int math
 
 @_disfavoredOverload
-func * (lhs: CGFloat, rhs: Int) -> CGFloat {
-    lhs * CGFloat(rhs)
-}
-
-@_disfavoredOverload
 func * (lhs: Int, rhs: CGFloat) -> CGFloat {
     CGFloat(lhs) * rhs
-}
-
-@_disfavoredOverload
-func / (lhs: CGFloat, rhs: Int) -> CGFloat {
-    lhs / CGFloat(rhs)
-}
-
-@_disfavoredOverload
-func / (lhs: Int, rhs: CGFloat) -> CGFloat {
-    CGFloat(lhs) / rhs
-}
-
-@_disfavoredOverload
-func % (lhs: CGFloat, rhs: CGFloat) -> CGFloat {
-    lhs.truncatingRemainder(dividingBy: rhs)
 }
 
 // MARK: Array
@@ -75,12 +55,6 @@ extension Collection {
     @inlinable
     var isNotEmpty: Bool {
         !isEmpty
-    }
-
-    func prefixPositive(_ maxLength: Int) -> Self.SubSequence {
-        guard maxLength > 0 else { return self[..<endIndex] }
-
-        return prefix(maxLength)
     }
 }
 
@@ -124,19 +98,6 @@ extension UICollectionView {
 
     var flowLayout: UICollectionViewFlowLayout {
         collectionViewLayout as! UICollectionViewFlowLayout
-    }
-}
-
-// MARK: UIEdgeInsets
-
-extension UIEdgeInsets {
-
-    var horizontal: CGFloat {
-        left + right
-    }
-
-    var vertical: CGFloat {
-        top + bottom
     }
 }
 

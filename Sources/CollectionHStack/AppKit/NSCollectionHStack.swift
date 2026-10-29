@@ -208,9 +208,6 @@ public final class NSCollectionHStack<
         }
         updating = changedData || changedCarousel
         configuration = new
-        if !new.animatesResizing || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            visibleResizeItems.forEach { ResizeAnimation.remove(from: $0.layer) }
-        }
         indicesByID = newLookup
         dataIndex = newIndex
         self.dynamicTypeSize = dynamicTypeSize
@@ -325,11 +322,6 @@ public final class NSCollectionHStack<
     }
 
     private func applyLayout(forWidth width: CGFloat) {
-        let resize = ResizeAnimation(
-            items: visibleResizeItems, in: layer,
-            enabled: configuration.animatesResizing && window != nil
-                && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        )
         // Bounds changes during retiling can clamp the old pixel offset before we
         // get here. Use the anchor recorded while the previous layout was valid.
         let anchor = scrollAnchor
@@ -387,16 +379,6 @@ public final class NSCollectionHStack<
 
         collectionView.needsLayout = true
         collectionView.layoutSubtreeIfNeeded()
-        resize.apply(to: visibleResizeItems, in: layer)
-    }
-
-    private var visibleResizeItems: [ResizeAnimation.Item] {
-        collectionView.visibleItems().compactMap { item in
-            guard let item = item as? HostingCollectionViewItem,
-                  let id = item.representedID, let layer = item.view.layer else { return nil }
-
-            return ResizeAnimation.Item(id: id, layer: layer)
-        }
     }
 
     private func recordScrollAnchor() {
@@ -632,11 +614,6 @@ public final class NSCollectionHStack<
                 binding.wrappedValue = alignedID
             }
         }
-
-        configuration.didScrollToItems(visible.compactMap { (0 ..< itemCount).contains($0) ? dataIndex.element(
-            in: configuration.data,
-            at: $0
-        ) : nil })
     }
 
     private func updateEdge(_ edge: Edge, reached: Bool, action: () -> Void) {
@@ -685,7 +662,6 @@ public final class NSCollectionHStack<
 
     func disconnect() {
         disconnected = true
-        visibleResizeItems.forEach { ResizeAnimation.remove(from: $0.layer) }
         settleWork?.cancel()
         cancelScrollAnimation()
         cancelPrefetch()

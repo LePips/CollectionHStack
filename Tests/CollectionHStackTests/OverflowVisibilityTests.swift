@@ -25,7 +25,7 @@ struct OverflowVisibilityTests {
 
         let stack = UICollectionHStack(
             id: \.self, alignedLeadingElementID: nil, clipsToBounds: false,
-            data: configuration.data, dataPrefix: nil, didScrollToItems: { _ in },
+            data: configuration.data, dataPrefix: nil,
             insets: configuration.insets, isCarousel: false, itemSpacing: configuration.itemSpacing,
             layout: configuration.layout,
             onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .columns(0),

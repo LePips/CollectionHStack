@@ -20,15 +20,12 @@ public struct CollectionHStack<
     let id: KeyPath<Element, ID>
     var alignedLeadingElementID: Binding<ID?>?
     var allowBouncing: Bool
-    var allowScrolling: Bool
-    var animatesResizing = false
     var clipsToBounds: Bool
     #if canImport(UIKit)
     var contentInsetAdjustmentBehavior: UIScrollView.ContentInsetAdjustmentBehavior = .automatic
     #endif
     let data: Data
     var dataPrefix: Int?
-    let didScrollToItems: ([Element]) -> Void
     var insets: EdgeInsets
     var isCarousel: Bool
     var itemMeasurementRevision = 0
@@ -52,11 +49,9 @@ public struct CollectionHStack<
         id: KeyPath<Element, ID>,
         alignedLeadingElementID: Binding<ID?>? = nil,
         allowBouncing: Bool = true,
-        allowScrolling: Bool = true,
         clipsToBounds: Bool = defaultClipsToBounds,
         data: Data,
         dataPrefix: Int? = nil,
-        didScrollToItems: @escaping ([Element]) -> Void = { _ in },
         insets: EdgeInsets = .init(top: 0, leading: defaultHorizontalInset, bottom: 0, trailing: defaultHorizontalInset),
         isCarousel: Bool = false,
         itemSpacing: CGFloat = defaultItemSpacing,
@@ -75,11 +70,9 @@ public struct CollectionHStack<
         self.id = id
         self.alignedLeadingElementID = alignedLeadingElementID
         self.allowBouncing = allowBouncing
-        self.allowScrolling = allowScrolling
         self.clipsToBounds = clipsToBounds
         self.data = data
         self.dataPrefix = dataPrefix
-        self.didScrollToItems = didScrollToItems
         self.insets = insets
         self.isCarousel = isCarousel
         self.itemSpacing = itemSpacing
@@ -108,7 +101,6 @@ extension CollectionHStack: UIViewRepresentable {
             clipsToBounds: clipsToBounds,
             data: data,
             dataPrefix: dataPrefix,
-            didScrollToItems: didScrollToItems,
             insets: insets,
             isCarousel: isCarousel,
             itemSpacing: itemSpacing,

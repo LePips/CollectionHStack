@@ -50,7 +50,6 @@ public class UICollectionHStack<
     private var isDataUpdateInProgress = false
 
     // events
-    private var didScrollToItems: ([Element]) -> Void
     private var onReachedLeadingEdge: () -> Void
     private var onReachedLeadingEdgeOffset: CollectionHStackEdgeOffset
     private var onReachedTrailingEdge: () -> Void
@@ -59,7 +58,6 @@ public class UICollectionHStack<
     private var onCancelPrefetchingElements: ([Element]) -> Void
 
     // internal
-    private var dataPrefix: Int?
     private var effectiveItemCount: Int
     private var isCarousel: Bool
     private var data: Data
@@ -81,7 +79,6 @@ public class UICollectionHStack<
     private var lastLaidOutWidth: CGFloat?
     private var needsSizingUpdate = true
     private var renderingInsets: UIEdgeInsets = .zero
-    private var animatesResizing = false
     private var size = CGSize(width: UIView.noIntrinsicMetric, height: 0)
     private var variadicItemSizeCache: [ID: CGSize] = [:]
     private var measurer = ContentMeasurer<Content>()
@@ -122,7 +119,6 @@ public class UICollectionHStack<
         clipsToBounds: Bool,
         data: Data,
         dataPrefix: Int?,
-        didScrollToItems: @escaping ([Element]) -> Void,
         insets: EdgeInsets,
         isCarousel: Bool,
         itemSpacing: CGFloat,
@@ -141,8 +137,6 @@ public class UICollectionHStack<
         self._id = id
         self.alignedLeadingElementID = alignedLeadingElementID
         self.data = data
-        self.dataPrefix = dataPrefix
-        self.didScrollToItems = didScrollToItems
         self.effectiveItemCount = 0
         self.insets = insets
         self.isCarousel = isCarousel
@@ -362,7 +356,7 @@ public class UICollectionHStack<
         guard !hasEvaluatedInitialElement, let initialElementID, dataIndex.ids.isNotEmpty else { return }
 
         hasEvaluatedInitialElement = true
-        pendingInitialElementID = dataIndex[initialElementID] != nil ? initialElementID : nil
+        pendingInitialElementID = dataIndex.ids.contains(initialElementID) ? initialElementID : nil
         if pendingInitialElementID != nil {
             setNeedsLayout()
         }
@@ -503,11 +497,6 @@ public class UICollectionHStack<
         let newItemSize = resolvedSizes.itemSize
         let itemSizeChanged = itemSize != newItemSize
         let intrinsicHeightChanged = size.height != newSelfSize.height
-        let resize = animatesResizing ? ResizeAnimation(
-            items: visibleResizeItems, in: layer,
-            enabled: itemSizeChanged && window != nil
-                && !UIAccessibility.isReduceMotionEnabled && !isDataUpdateInProgress
-        ) : nil
 
         // Record the position against the outgoing layout, before any metrics change.
         // Rendering insets alone preserve positions through balanced section insets.
@@ -557,7 +546,7 @@ public class UICollectionHStack<
         // so UIKit can coalesce those layouts. Initial layout, direct UIKit sizing,
         // scroll targets and the final frame still need attributes immediately.
         let requiresImmediateLayout = itemSizeTransition == nil || window == nil
-            || width == itemSizeTransition?.targetWidth || pendingInitialElementID != nil || resize != nil
+            || width == itemSizeTransition?.targetWidth || pendingInitialElementID != nil
         // Position the reflowed content before laying out cells, so cells are
         // laid out once, at their final offset.
         if let scrollAnchor {
@@ -565,9 +554,6 @@ public class UICollectionHStack<
         }
         if (itemSizeChanged || viewportChanged) && requiresImmediateLayout {
             collectionView.layoutIfNeeded()
-        }
-        if let resize {
-            resize.apply(to: visibleResizeItems, in: layer)
         }
     }
 
@@ -682,14 +668,6 @@ public class UICollectionHStack<
         guard right > left else { return .zero }
 
         return .init(top: 0, left: max(0, bounds.minX - left), bottom: 0, right: max(0, right - bounds.maxX))
-    }
-
-    private var visibleResizeItems: [ResizeAnimation.Item] {
-        collectionView.visibleCells.compactMap { cell in
-            guard let cell = cell as? HostingCollectionViewCell<Content>, let id = cell.representedID else { return nil }
-
-            return ResizeAnimation.Item(id: id, layer: cell.layer)
-        }
     }
 
     private func invalidateSizing() {
@@ -910,14 +888,9 @@ public class UICollectionHStack<
         if collectionView.contentInsetAdjustmentBehavior != configuration.contentInsetAdjustmentBehavior {
             collectionView.contentInsetAdjustmentBehavior = configuration.contentInsetAdjustmentBehavior
         }
-        animatesResizing = configuration.animatesResizing
-        if !animatesResizing || UIAccessibility.isReduceMotionEnabled {
-            visibleResizeItems.forEach { ResizeAnimation.remove(from: $0.layer) }
-        }
         #if os(tvOS)
         (collectionView as? FocusCollectionView)?.behavior = configuration.focusBehavior
         #endif
-        didScrollToItems = configuration.didScrollToItems
         onReachedLeadingEdge = configuration.onReachedLeadingEdge
         onReachedLeadingEdgeOffset = configuration.onReachedLeadingEdgeOffset
         onReachedTrailingEdge = configuration.onReachedTrailingEdge
@@ -967,7 +940,6 @@ public class UICollectionHStack<
             || insets != self.insets || itemSpacing != self.itemSpacing
             || itemMeasurementRevision != self.itemMeasurementRevision
 
-        self.dataPrefix = dataPrefix
         layout = newLayout
         self.insets = insets
         self.itemSpacing = itemSpacing
@@ -1237,17 +1209,8 @@ public class UICollectionHStack<
         }
     }
 
-    // TODO: should probably be instead when items just became visible / make separate method?
-    // TODO: remove items on edges in certain scrollBehaviors + layouts?
     public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-
         scheduleAlignedLeadingElementIDUpdate()
-
-        let visibleItems = collectionView
-            .indexPathsForVisibleItems
-            .map { element(at: $0.item) }
-
-        didScrollToItems(visibleItems)
     }
 
     public func scrollViewDidEndDragging(

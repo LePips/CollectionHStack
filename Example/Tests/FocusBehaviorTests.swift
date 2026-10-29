@@ -221,7 +221,7 @@ private final class FocusHarness {
         self.configuration = configuration
         view = .init(
             id: configuration.id, alignedLeadingElementID: nil, clipsToBounds: false,
-            data: data, dataPrefix: nil, didScrollToItems: { _ in },
+            data: data, dataPrefix: nil,
             insets: configuration.insets, isCarousel: configuration.isCarousel, itemSpacing: configuration.itemSpacing,
             layout: configuration.layout, onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .offset(0),
             onReachedTrailingEdge: {}, onReachedTrailingEdgeOffset: .offset(0),

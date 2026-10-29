@@ -42,10 +42,4 @@ protocol ColumnAlignedLayout: UICollectionViewFlowLayout {
     var rows: Int { get set }
 }
 
-/// A `UICollectionViewFlowLayout` that will stride along columns
-protocol ColumnStridableLayout: UICollectionViewFlowLayout {
-
-    var step: Int { get set }
-}
-
 #endif

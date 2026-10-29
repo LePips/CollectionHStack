@@ -239,7 +239,7 @@ struct InitialElementTests {
         #if canImport(UIKit)
         NativeView(
             id: configuration.id, alignedLeadingElementID: nil, clipsToBounds: true,
-            data: configuration.data, dataPrefix: configuration.dataPrefix, didScrollToItems: { _ in },
+            data: configuration.data, dataPrefix: configuration.dataPrefix,
             insets: configuration.insets, isCarousel: configuration.isCarousel, itemSpacing: configuration.itemSpacing,
             layout: configuration.layout, onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .offset(0),
             onReachedTrailingEdge: {}, onReachedTrailingEdgeOffset: .offset(0),

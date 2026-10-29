@@ -12,7 +12,7 @@ struct CollectionHStackUpdateTests {
         let values = (0 ..< 8).map(CollidingID.init)
         let view = UICollectionHStack(
             id: \.self, alignedLeadingElementID: nil, clipsToBounds: true,
-            data: values[2 ..< 6], dataPrefix: nil, didScrollToItems: { _ in },
+            data: values[2 ..< 6], dataPrefix: nil,
             insets: .init(), isCarousel: false, itemSpacing: 10,
             layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0),
             onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .offset(0),
@@ -75,7 +75,7 @@ struct CollectionHStackUpdateTests {
         let layout = CollectionHStackLayout.grid(columns: 2, rows: 1, columnTrailingInset: 0)
         let view = UICollectionHStack(
             id: \.id, alignedLeadingElementID: nil, clipsToBounds: true,
-            data: initial[2...], dataPrefix: 2, didScrollToItems: { _ in },
+            data: initial[2...], dataPrefix: 2,
             insets: .init(), isCarousel: true, itemSpacing: 10, layout: layout,
             onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .offset(0),
             onReachedTrailingEdge: {}, onReachedTrailingEdgeOffset: .offset(0),
@@ -116,7 +116,7 @@ struct CollectionHStackUpdateTests {
         let values = CountingValues(counter: counter)
         let view = UICollectionHStack(
             id: \.self, alignedLeadingElementID: nil, clipsToBounds: true,
-            data: values, dataPrefix: nil, didScrollToItems: { _ in },
+            data: values, dataPrefix: nil,
             insets: .init(), isCarousel: true, itemSpacing: 10,
             layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0),
             onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .offset(0),

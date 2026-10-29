@@ -24,7 +24,7 @@ struct CompositeCellSizingTests {
         #else
         let stack = UICollectionHStack(
             id: \.self, alignedLeadingElementID: nil, clipsToBounds: true,
-            data: Array(0 ..< 20), dataPrefix: nil, didScrollToItems: { _ in },
+            data: Array(0 ..< 20), dataPrefix: nil,
             insets: configuration.insets, isCarousel: false, itemSpacing: 10, layout: layout,
             onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .columns(0),
             onReachedTrailingEdge: {}, onReachedTrailingEdgeOffset: .columns(0),
