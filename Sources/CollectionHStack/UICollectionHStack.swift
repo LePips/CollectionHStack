@@ -1,5 +1,4 @@
 #if canImport(UIKit)
-import DifferenceKit
 import SwiftUI
 
 // UIKit supplies reuse, focus, and animated updates. Measurement is cached separately
@@ -39,8 +38,8 @@ public class UICollectionHStack<
 
     private var _id: KeyPath<Element, ID>
     private var dataIndex = CollectionDataIndex<ID>()
-    // DifferenceKit needs materialized identities only while applying structural changes.
-    private var stagedItems: [CollectionItem<ID>]?
+    // Structural updates retain base identities and optional survivor offsets only.
+    private var stagedItems: CollectionSnapshot<ID>?
     private var dataTransition: CollectionDataTransition<Data, ID>?
 
     // binding
@@ -219,13 +218,13 @@ public class UICollectionHStack<
         collectionView.identityAt = { [weak self] path in
             guard let self, path.section == 0, (0 ..< self.effectiveItemCount).contains(path.item) else { return nil }
 
-            return AnyHashable(self.item(at: path.item).differenceIdentifier)
+            return AnyHashable(self.item(at: path.item).identity)
         }
         collectionView.indexPathForIdentity = { [weak self] identity in
             guard let self, let identity = identity.base as? CollectionItem<ID>.Identity else { return nil }
 
             if let stagedItems = self.stagedItems {
-                return stagedItems.firstIndex { $0.differenceIdentifier == identity }.map { IndexPath(item: $0, section: 0) }
+                return stagedItems.firstIndex { $0.identity == identity }.map { IndexPath(item: $0, section: 0) }
             }
             guard let offset = self.dataIndex.ids.firstIndex(of: identity.id) else { return nil }
 
@@ -859,7 +858,7 @@ public class UICollectionHStack<
     private func configure(_ cell: HostingCollectionViewCell<Content>, at position: Int) {
         cell.setup(
             view: viewProvider(element(at: position)),
-            id: AnyHashable(item(at: position).differenceIdentifier),
+            id: AnyHashable(item(at: position).identity),
             generation: contentGeneration
         )
     }
@@ -916,7 +915,7 @@ public class UICollectionHStack<
         }
     }
 
-    // MARK: update
+    // MARK: - Update
 
     func update(
         newData: Data,
@@ -931,7 +930,6 @@ public class UICollectionHStack<
         viewProvider: ((Element) -> Content)? = nil,
         defersContentRefresh: Bool = false
     ) {
-
         self.alignedLeadingElementID = alignedLeadingElementID
         let wasEmpty = data.isEmpty
         let insets = newInsets ?? self.insets
@@ -969,10 +967,6 @@ public class UICollectionHStack<
         let hasDataChanges = changedIDs || newCount != effectiveItemCount
 
         if hasDataChanges {
-            let source = dataIndex.items(count: effectiveItemCount)
-            let target = newIndex.items(count: newCount)
-            let changes = StagedChangeset(source: source, target: target, section: 0)
-
             dataUpdateGeneration += 1
             let updateGeneration = dataUpdateGeneration
             isDataUpdateInProgress = true
@@ -985,19 +979,37 @@ public class UICollectionHStack<
                 self.scheduleAlignedLeadingElementIDUpdate()
             }
 
-            dataTransition = CollectionDataTransition(
-                previousData: data, previousIndex: dataIndex, currentIndex: newIndex,
-                lookup: &lookup, hasDeletions: changes.contains { !$0.elementDeleted.isEmpty }
-            )
-            stagedItems = source
-            data = newData
-            dataIndex = newIndex
-            collectionView.reload(using: changes) { items in
-                self.stagedItems = items
-                self.effectiveItemCount = items.count
+            if collectionView.window == nil {
+                data = newData
+                dataIndex = newIndex
+                effectiveItemCount = newCount
+                collectionView.reloadData()
+            } else {
+                let source = dataIndex.items(count: effectiveItemCount)
+                let changes = CollectionDiff(
+                    source: source,
+                    target: newIndex.items(count: newCount),
+                    lookup: lookup
+                )
+
+                dataTransition = CollectionDataTransition(
+                    previousData: data,
+                    previousIndex: dataIndex,
+                    currentIndex: newIndex,
+                    lookup: &lookup,
+                    hasDeletions: !changes.deleted.isEmpty
+                )
+                stagedItems = source
+                data = newData
+                dataIndex = newIndex
+
+                collectionView.apply(changes) { items in
+                    self.stagedItems = items
+                    self.effectiveItemCount = items.count
+                }
+                stagedItems = nil
+                dataTransition = nil
             }
-            stagedItems = nil
-            dataTransition = nil
             scrollAnchor = nil
         } else {
             data = newData
@@ -1036,8 +1048,7 @@ public class UICollectionHStack<
             CATransaction.commit()
         }
 
-        // DifferenceKit does not call its data setter when there are no changes.
-        // Still refresh in case SwiftUI supplied a new Binding instance.
+        // Refresh even without structural changes when SwiftUI supplies a new Binding.
         scheduleAlignedLeadingElementIDUpdate()
     }
 

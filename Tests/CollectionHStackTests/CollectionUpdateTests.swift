@@ -6,19 +6,29 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct CollectionHStackUpdateTests {
+
     @Test
     func `colliding I ds and staged updates keep the correct elements`() async throws {
         var configured: [Int] = []
         let values = (0 ..< 8).map(CollidingID.init)
         let view = UICollectionHStack(
-            id: \.self, alignedLeadingElementID: nil, clipsToBounds: true,
-            data: values[2 ..< 6], dataPrefix: nil,
-            insets: .init(), isCarousel: false, itemSpacing: 10,
+            id: \.self,
+            alignedLeadingElementID: nil,
+            clipsToBounds: true,
+            data: values[2 ..< 6],
+            dataPrefix: nil,
+            insets: .init(),
+            isCarousel: false,
+            itemSpacing: 10,
             layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0),
-            onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .offset(0),
-            onReachedTrailingEdge: {}, onReachedTrailingEdgeOffset: .offset(0),
-            onPrefetchingElements: { _ in }, onCancelPrefetchingElements: { _ in },
-            proxy: .init(), scrollBehavior: .continuousLeadingEdge
+            onReachedLeadingEdge: {},
+            onReachedLeadingEdgeOffset: .offset(0),
+            onReachedTrailingEdge: {},
+            onReachedTrailingEdgeOffset: .offset(0),
+            onPrefetchingElements: { _ in },
+            onCancelPrefetchingElements: { _ in },
+            proxy: .init(),
+            scrollBehavior: .continuousLeadingEdge
         ) { element in
             configured.append(element.value)
             return Text("\(element.value)").frame(height: 40)
@@ -61,11 +71,35 @@ struct CollectionHStackUpdateTests {
             layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0)
         )
         #expect(collection.numberOfItems(inSection: 0) == 0)
+
+        view.removeFromSuperview()
+
+        view.update(
+            newData: next[...],
+            alignedLeadingElementID: nil,
+            layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0)
+        )
+
+        #expect(collection.numberOfItems(inSection: 0) == next.count)
+
+        controller.view.addSubview(view)
+        view.layoutIfNeeded()
+        configured.removeAll()
+
+        view.update(
+            newData: next[...],
+            alignedLeadingElementID: nil,
+            layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0)
+        )
+
+        #expect(!configured.isEmpty)
+        #expect(Set(configured).isSubset(of: Set(next.map(\.value))))
     }
 
     @Test
     func `carousel resolves latest content after slice and prefix changes`() throws {
         struct Value: Equatable {
+
             let id: Int
             let content: String
         }
@@ -74,14 +108,23 @@ struct CollectionHStackUpdateTests {
         let initial = (0 ..< 5).map { Value(id: $0, content: "old") }
         let layout = CollectionHStackLayout.grid(columns: 2, rows: 1, columnTrailingInset: 0)
         let view = UICollectionHStack(
-            id: \.id, alignedLeadingElementID: nil, clipsToBounds: true,
-            data: initial[2...], dataPrefix: 2,
-            insets: .init(), isCarousel: true, itemSpacing: 10, layout: layout,
-            onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .offset(0),
-            onReachedTrailingEdge: {}, onReachedTrailingEdgeOffset: .offset(0),
+            id: \.id,
+            alignedLeadingElementID: nil,
+            clipsToBounds: true,
+            data: initial[2...],
+            dataPrefix: 2,
+            insets: .init(),
+            isCarousel: true,
+            itemSpacing: 10,
+            layout: layout,
+            onReachedLeadingEdge: {},
+            onReachedLeadingEdgeOffset: .offset(0),
+            onReachedTrailingEdge: {},
+            onReachedTrailingEdgeOffset: .offset(0),
             onPrefetchingElements: { prefetched = $0 },
             onCancelPrefetchingElements: { cancelled = $0 },
-            proxy: .init(), scrollBehavior: .continuous
+            proxy: .init(),
+            scrollBehavior: .continuous
         ) { Text($0.content) }
         let collection = try #require(view.subviews.compactMap { $0 as? UICollectionView }.first)
         #expect(view.collectionView(collection, numberOfItemsInSection: 0) == 100)
@@ -115,14 +158,23 @@ struct CollectionHStackUpdateTests {
         let counter = ElementReadCounter()
         let values = CountingValues(counter: counter)
         let view = UICollectionHStack(
-            id: \.self, alignedLeadingElementID: nil, clipsToBounds: true,
-            data: values, dataPrefix: nil,
-            insets: .init(), isCarousel: true, itemSpacing: 10,
+            id: \.self,
+            alignedLeadingElementID: nil,
+            clipsToBounds: true,
+            data: values,
+            dataPrefix: nil,
+            insets: .init(),
+            isCarousel: true,
+            itemSpacing: 10,
             layout: .grid(columns: 2, rows: 1, columnTrailingInset: 0),
-            onReachedLeadingEdge: {}, onReachedLeadingEdgeOffset: .offset(0),
-            onReachedTrailingEdge: {}, onReachedTrailingEdgeOffset: .offset(0),
-            onPrefetchingElements: { _ in }, onCancelPrefetchingElements: { _ in },
-            proxy: .init(), scrollBehavior: .continuous
+            onReachedLeadingEdge: {},
+            onReachedLeadingEdgeOffset: .offset(0),
+            onReachedTrailingEdge: {},
+            onReachedTrailingEdgeOffset: .offset(0),
+            onPrefetchingElements: { _ in },
+            onCancelPrefetchingElements: { _ in },
+            proxy: .init(),
+            scrollBehavior: .continuous
         ) { Text("\($0)") }
         let collection = try #require(view.subviews.compactMap { $0 as? UICollectionView }.first)
         #expect(view.collectionView(collection, numberOfItemsInSection: 0) == 100)
@@ -148,6 +200,7 @@ struct CollectionHStackUpdateTests {
 }
 
 private struct CollidingID: Hashable {
+
     let value: Int
     func hash(into hasher: inout Hasher) {
         hasher.combine(0)
@@ -155,10 +208,12 @@ private struct CollidingID: Hashable {
 }
 
 private final class ElementReadCounter {
+
     var reads = 0
 }
 
 private struct CountingValues: RandomAccessCollection {
+
     let counter: ElementReadCounter
     let startIndex = 0
     let endIndex = 3
