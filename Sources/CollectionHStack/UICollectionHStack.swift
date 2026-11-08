@@ -8,8 +8,6 @@ import SwiftUI
 
 private let cellReuseIdentifier = "HostingCollectionViewCell"
 private let alignedLeadingElementIDUpdateDelay: TimeInterval = 0.05
-/// Visible content refreshes wait this long after the latest width change.
-private let resizeSettleDelay: TimeInterval = 0.1
 
 public protocol _UICollectionHStack: UIView {
 
@@ -32,11 +30,12 @@ public class UICollectionHStack<
     UICollectionViewDataSource,
     UICollectionViewDelegate,
     UICollectionViewDelegateFlowLayout,
+    CollectionHStackItemSizeProvider,
     UICollectionViewDataSourcePrefetching
     where Data.Element == Element, Data.Index == Int
 {
 
-    private var _id: KeyPath<Element, ID>
+    private var identifier: (Element) -> ID
     private var dataIndex = CollectionDataIndex<ID>()
     // Structural updates retain base identities and optional survivor offsets only.
     private var stagedItems: CollectionSnapshot<ID>?
@@ -44,7 +43,7 @@ public class UICollectionHStack<
 
     // binding
     private var alignedLeadingElementID: Binding<ID?>?
-    private var alignedLeadingElementIDUpdateGeneration = 0
+    private let alignedLeadingElementUpdate = CollectionDeferredUpdate()
     private var dataUpdateGeneration = 0
     private var isDataUpdateInProgress = false
 
@@ -63,7 +62,7 @@ public class UICollectionHStack<
     private var insets: EdgeInsets
     private var itemSpacing: CGFloat
     private var itemMeasurementRevision = 0
-    private var itemSizeCache = ItemSizeCache()
+    private let itemSizing = CollectionItemSizing<Content>()
     private var itemSize: CGSize?
     private var layout: CollectionHStackLayout
     private var onReachedEdgeStore: Set<Edge>
@@ -72,42 +71,29 @@ public class UICollectionHStack<
     private var hasEvaluatedInitialElement = false
     private var pendingInitialElementID: ID?
     private var fittingSizeCache: (width: CGFloat, selfSize: CGSize, itemSize: CGSize)?
-    private var itemSizeTransition: ItemSizeTransition?
-    private var needsResizeTarget = true
-    private var pendingSizeTransition: ItemSizeTransition?
+    private var resizeTransition = CollectionResizeTransition()
     private var lastLaidOutWidth: CGFloat?
     private var needsSizingUpdate = true
     private var renderingInsets: UIEdgeInsets = .zero
     private var size = CGSize(width: UIView.noIntrinsicMetric, height: 0)
     private var variadicItemSizeCache: [ID: CGSize] = [:]
-    private var measurer = ContentMeasurer<Content>()
 
     // resizing
-    private var contentGeneration = 0
-    private var needsContentRefresh = false
-    private var contentRefreshGeneration = 0
-    private var lastResizeTime: CFTimeInterval = -.infinity
+    private let contentRefresh = CollectionContentRefresh()
     /// Unlike `lastLaidOutWidth`, this survives sizing invalidation so a remeasured
     /// layout still preserves the scroll position of the one it replaces.
     private var lastAppliedWidth: CGFloat?
-    private var scrollAnchor: ScrollAnchor?
+    private var scrollAnchor: CollectionScrollAnchor?
     private var isAdjustingScrollPosition = false
     private var isLayoutDeferred = false
     private var isForcingLayout = false
     private var visibilityObservations: [NSKeyValueObservation] = []
 
-    /// The position to preserve when item geometry changes, matching the scroll
-    /// behavior's own alignment. Recorded once, then reused across consecutive
-    /// resizes so pixel-rounded offsets cannot accumulate drift.
-    private enum ScrollAnchor {
-        case leading
-        case trailing
-        case page(CGFloat)
-        case item(index: Int, fraction: CGFloat, centered: Bool)
-    }
-
     // MARK: view provider
 
+    private var contentEnvironment: EnvironmentValues?
+    private var measurementEnvironment: ContentMeasurementEnvironment?
+    private var needsEnvironmentContentRefresh = false
     private var viewProvider: (Element) -> Content
 
     // MARK: init
@@ -133,7 +119,7 @@ public class UICollectionHStack<
         initialElementID: ID? = nil,
         viewProvider: @escaping (Element) -> Content
     ) {
-        self._id = id
+        self.identifier = { $0[keyPath: id] }
         self.alignedLeadingElementID = alignedLeadingElementID
         self.data = data
         self.effectiveItemCount = 0
@@ -154,7 +140,7 @@ public class UICollectionHStack<
 
         super.init(frame: .zero)
 
-        dataIndex.update(from: data, id: _id, prefix: dataPrefix)
+        dataIndex.update(from: data, id: id, prefix: dataPrefix)
         effectiveItemCount = itemCount(for: dataIndex)
         evaluateInitialElementIfNeeded()
 
@@ -205,9 +191,9 @@ public class UICollectionHStack<
         let layout = scrollBehavior.flowLayout
         layout.scrollDirection = .horizontal
         layout.sectionInset = .init(
-            top: 0,
+            top: insets.top,
             left: insets.leading,
-            bottom: 0,
+            bottom: insets.bottom,
             right: insets.trailing
         )
         layout.minimumLineSpacing = nonnegativeFinite(itemSpacing)
@@ -346,9 +332,7 @@ public class UICollectionHStack<
         setNeedsLayout()
         layoutIfNeeded()
         // The resize that deferred this layout has finished; show current content.
-        if needsContentRefresh {
-            refreshVisibleItems()
-        }
+        refreshVisibleItems()
     }
 
     private func evaluateInitialElementIfNeeded() {
@@ -377,68 +361,25 @@ public class UICollectionHStack<
     }
 
     func prepareForLayout() {
-        needsResizeTarget = true
-        pendingSizeTransition = nil
+        resizeTransition.prepareForLayout()
     }
 
-    /// SwiftUI measures the destination before proposing the intermediate widths
-    /// of an animated layout. Capture it for each update, including interrupted
-    /// animations, rather than asking callers to duplicate their layout sizing.
     func fittingSize(forProposedWidth width: CGFloat) -> CGSize {
         guard width.isFiniteAndPositive else { return fittingSize(forWidth: width) }
 
-        let tolerance = 0.5 / max(traitCollection.displayScale, 1)
-        let isCurrentWidth = abs(width - bounds.width) <= tolerance
-        let completedResize = itemSizeTransition.map {
-            abs(bounds.width - $0.targetWidth) <= tolerance && abs(width - $0.targetWidth) > tolerance
-        } ?? false
-        if needsResizeTarget, isCurrentWidth, itemSizeTransition?.progress(for: bounds.width) != nil {
-            // An update that leaves the row in place, such as an environment
-            // change during an animation, continues the transition it displays.
-            needsResizeTarget = false
-            pendingSizeTransition = nil
-        } else if needsResizeTarget || (!isCurrentWidth && (itemSizeTransition == nil || completedResize)) {
-            needsResizeTarget = false
-            itemSizeTransition = sizeTransition(to: width)
-            pendingSizeTransition = nil
+        if resizeTransition.propose(
+            width: width, displayedWidth: bounds.width,
+            displayedItemSize: itemSize ?? collectionView.flowLayout.itemSize,
+            displayedHeight: size.height, pixel: pixelAlignmentDistance,
+            targetItemWidth: layoutMetrics.itemWidth(for: width)
+        ) {
             fittingSizeCache = nil
-        } else if width == itemSizeTransition?.targetWidth {
-            pendingSizeTransition = nil
-        } else if let pendingSizeTransition,
-                  abs(width - pendingSizeTransition.sourceWidth) + pixelAlignmentDistance
-                  < abs(pendingSizeTransition.targetWidth - pendingSizeTransition.sourceWidth)
-        {
-            // Retained subtrees can animate without updateUIView. SwiftUI probes
-            // the destination before the first animation frame; confirm it when
-            // a subsequent proposal is closer to the still-displayed source.
-            // SwiftUI also proposes each frame again after aligning it to pixels,
-            // which can move it back toward the source; that is the same frame.
-            itemSizeTransition = pendingSizeTransition
-            self.pendingSizeTransition = nil
-            fittingSizeCache = nil
-        } else if !isCurrentWidth, pendingSizeTransition == nil {
-            pendingSizeTransition = sizeTransition(to: width)
         }
         return fittingSize(forWidth: width)
     }
 
-    /// Aligning both edges of a frame to pixels can change its width by up to one pixel.
     private var pixelAlignmentDistance: CGFloat {
         1 / max(traitCollection.displayScale, 1)
-    }
-
-    private func sizeTransition(to width: CGFloat) -> ItemSizeTransition? {
-        // A transition narrower than the alignment tolerance has no meaningful
-        // progress; any later width would extrapolate its endpoints.
-        let tolerance = 0.5 / max(traitCollection.displayScale, 1)
-        guard bounds.width.isFiniteAndPositive, abs(bounds.width - width) > tolerance, size.height > 0,
-              let targetItemWidth = layoutMetrics.itemWidth(for: width) else { return nil }
-
-        return ItemSizeTransition(
-            sourceWidth: bounds.width, targetWidth: width,
-            sourceItemSize: itemSize ?? collectionView.flowLayout.itemSize,
-            targetItemWidth: targetItemWidth
-        )
     }
 
     func fittingSize(forWidth width: CGFloat) -> CGSize {
@@ -457,14 +398,7 @@ public class UICollectionHStack<
     }
 
     private func updateSizes(forWidth width: CGFloat) {
-        // A proposal that becomes the live bounds was an animation frame, not
-        // an additional destination to use when the parent measures again.
-        if let pendingSizeTransition {
-            let direction: CGFloat = pendingSizeTransition.targetWidth > pendingSizeTransition.sourceWidth ? 1 : -1
-            if (width - pendingSizeTransition.targetWidth) * direction >= -pixelAlignmentDistance {
-                self.pendingSizeTransition = nil
-            }
-        }
+        resizeTransition.apply(width: width, pixel: pixelAlignmentDistance)
         let newRenderingInsets = visibleOverflowInsets
         let viewportChanged = renderingInsets != newRenderingInsets
         let needsLayout = width.isFiniteAndPositive && (needsSizingUpdate || lastLaidOutWidth != width || viewportChanged)
@@ -502,7 +436,7 @@ public class UICollectionHStack<
         if let previousWidth = lastAppliedWidth, previousWidth != width || itemSizeChanged {
             scrollAnchor = scrollAnchor ?? currentScrollAnchor()
             if previousWidth != width {
-                lastResizeTime = CACurrentMediaTime()
+                contentRefresh.geometryChanged()
             }
         }
         isAdjustingScrollPosition = true
@@ -544,8 +478,8 @@ public class UICollectionHStack<
         // The parent supplies intermediate frames during an animated resize,
         // so UIKit can coalesce those layouts. Initial layout, direct UIKit sizing,
         // scroll targets and the final frame still need attributes immediately.
-        let requiresImmediateLayout = itemSizeTransition == nil || window == nil
-            || width == itemSizeTransition?.targetWidth || pendingInitialElementID != nil
+        let requiresImmediateLayout = resizeTransition.current == nil || window == nil
+            || width == resizeTransition.current?.targetWidth || pendingInitialElementID != nil
         // Position the reflowed content before laying out cells, so cells are
         // laid out once, at their final offset.
         if let scrollAnchor {
@@ -571,7 +505,7 @@ public class UICollectionHStack<
 
     /// Leading-aligned behaviors keep their leading column, continuous scrolling keeps
     /// the item at the viewport's center, and full paging keeps its page.
-    private func currentScrollAnchor() -> ScrollAnchor? {
+    private func currentScrollAnchor() -> CollectionScrollAnchor? {
         guard effectiveItemCount > 0, collectionView.bounds.width.isFiniteAndPositive,
               let flowLayout = collectionView.flowLayout as? CollectionHStackFlowLayout else { return nil }
 
@@ -602,7 +536,7 @@ public class UICollectionHStack<
 
     /// Queries go through the collection view, which prepares an invalidated layout
     /// without laying out cells, so the new offset can be applied first.
-    private func restoreScrollPosition(to anchor: ScrollAnchor) {
+    private func restoreScrollPosition(to anchor: CollectionScrollAnchor) {
         // Never move content out from under the user's finger or momentum.
         guard !collectionView.isTracking, !collectionView.isDecelerating, !isDataUpdateInProgress, effectiveItemCount > 0,
               let flowLayout = collectionView.flowLayout as? CollectionHStackFlowLayout else { return }
@@ -638,11 +572,20 @@ public class UICollectionHStack<
     }
 
     private var collectionSectionInsets: UIEdgeInsets {
-        .init(top: 0, left: insets.leading + renderingInsets.left, bottom: 0, right: insets.trailing + renderingInsets.right)
+        .init(
+            top: insets.top,
+            left: insets.leading + renderingInsets.left,
+            bottom: insets.bottom,
+            right: insets.trailing + renderingInsets.right
+        )
     }
 
     private var renderingFrame: CGRect {
-        bounds.inset(by: .init(top: 0, left: -renderingInsets.left, bottom: 0, right: -renderingInsets.right))
+        // A parent can animate width and height independently. Packing uses the
+        // measured height for the committed width so a wrapped caption cannot
+        // temporarily push a configured row into another column.
+        CGRect(origin: bounds.origin, size: CGSize(width: bounds.width, height: size.height))
+            .inset(by: .init(top: 0, left: -renderingInsets.left, bottom: 0, right: -renderingInsets.right))
     }
 
     private var visibleOverflowInsets: UIEdgeInsets {
@@ -669,16 +612,28 @@ public class UICollectionHStack<
         return .init(top: 0, left: max(0, bounds.minX - left), bottom: 0, right: max(0, right - bounds.maxX))
     }
 
-    private func invalidateSizing() {
+    func updateEnvironment(_ environment: EnvironmentValues) {
+        let signature = ContentMeasurementEnvironment(environment)
+        let measurementChanged = measurementEnvironment != signature
+        measurementEnvironment = signature
+        contentEnvironment = environment
+        if measurementChanged {
+            invalidateSizing()
+            // Display changed typography in the same pass as its new metrics.
+            needsEnvironmentContentRefresh = true
+        }
+    }
+
+    private func invalidateSizing(keepingMeasurements: Bool = false) {
         needsSizingUpdate = true
         fittingSizeCache = nil
-        itemSizeTransition = nil
-        pendingSizeTransition = nil
+        resizeTransition = CollectionResizeTransition()
         lastLaidOutWidth = nil
         itemSize = nil
-        itemSizeCache = ItemSizeCache()
-        variadicItemSizeCache.removeAll(keepingCapacity: true)
-        measurer = ContentMeasurer()
+        if !keepingMeasurements {
+            itemSizing.invalidate()
+            variadicItemSizeCache.removeAll(keepingCapacity: true)
+        }
 
         setNeedsLayout()
         invalidateIntrinsicContentSize()
@@ -688,11 +643,11 @@ public class UICollectionHStack<
 
     /// Supplies the latest views to visible cells that predate the current content generation.
     private func refreshVisibleItems() {
-        needsContentRefresh = false
+        contentRefresh.didRefresh()
         for path in collectionView.indexPathsForVisibleItems {
             guard (0 ..< effectiveItemCount).contains(path.item),
                   let cell = collectionView.cellForItem(at: path) as? HostingCollectionViewCell<Content>,
-                  cell.contentGeneration != contentGeneration else { continue }
+                  cell.contentGeneration != contentRefresh.generation else { continue }
 
             configure(cell, at: path.item)
         }
@@ -704,20 +659,8 @@ public class UICollectionHStack<
     /// every hosted view each frame. Defer it until the width settles; cells that
     /// appear meanwhile are configured with the latest content as usual.
     private func refreshContentIfSettled() {
-        guard needsContentRefresh else { return }
-
-        let remaining = lastResizeTime + resizeSettleDelay - CACurrentMediaTime()
-        guard remaining > 0, window != nil else {
-            refreshVisibleItems()
-            return
-        }
-
-        contentRefreshGeneration &+= 1
-        let generation = contentRefreshGeneration
-        DispatchQueue.main.asyncAfter(deadline: .now() + remaining) { [weak self] in
-            guard let self, self.contentRefreshGeneration == generation else { return }
-
-            self.refreshContentIfSettled()
+        contentRefresh.refreshIfSettled(isAttached: window != nil) { [weak self] in
+            self?.refreshVisibleItems()
         }
     }
 
@@ -797,15 +740,11 @@ public class UICollectionHStack<
 
         let metrics = layoutMetrics
         let rows = metrics.rows
-        let singleItemSize: CGSize
-        if let transition = itemSizeTransition, let progress = transition.progress(for: availableWidth) {
-            // Measure the destination once. Interpolating the two measured sizes
-            // preserves fixed-height text and padding without rebuilding a sizing
-            // host for every frame, including rows outside the visible viewport.
-            let targetSize = measuredItemSize(width: transition.targetItemWidth)
-            singleItemSize = transition.itemSize(at: progress, targetSize: targetSize)
+        let singleItemSize: CGSize = if let transition = resizeTransition.current, let progress = transition.progress(for: availableWidth) {
+            // Measure intermediate widths so caption wrapping remains accurate.
+            measuredItemSize(width: transition.itemWidth(at: progress), reusingContent: true)
         } else {
-            singleItemSize = measuredItemSize(width: metrics.itemWidth(for: availableWidth))
+            measuredItemSize(width: metrics.itemWidth(for: availableWidth))
         }
 
         if let alignedLayout = collectionView.flowLayout as? ColumnAlignedLayout {
@@ -819,11 +758,13 @@ public class UICollectionHStack<
         let height = (metrics.height(for: singleItemSize).nextDown * displayScale).rounded(.up) / displayScale
         var flowLayoutItemSize = singleItemSize
 
-        // UICollectionViewFlowLayout requires a one-row item to be strictly shorter
-        // than the collection view. One representable floating-point step avoids its
-        // invalid-size warning without changing the rendered pixel size.
-        if rows == 1, insets.top + insets.bottom <= 0, flowLayoutItemSize.height > 0 {
-            flowLayoutItemSize.height = min(flowLayoutItemSize.height, height).nextDown
+        // Flow layout uses strict fits when packing rows. Rounding the total height
+        // can leave multiple rows one floating-point step too tall, making UIKit
+        // unexpectedly place them in separate columns during a subpoint resize.
+        // Keep all rows inside the rounded viewport without changing rendered pixels.
+        if flowLayoutItemSize.height > 0 {
+            let availableHeight = max(0, height - insets.top - insets.bottom - CGFloat(rows - 1) * metrics.spacing)
+            flowLayoutItemSize.height = min(flowLayoutItemSize.height, availableHeight / CGFloat(rows)).nextDown
         }
 
         return (
@@ -843,23 +784,25 @@ public class UICollectionHStack<
         layoutMetrics.rows
     }
 
-    private func measuredItemSize(width: CGFloat? = nil) -> CGSize {
+    private func measuredItemSize(width: CGFloat? = nil, reusingContent: Bool = false) -> CGSize {
         guard data.isNotEmpty else { return CGSize(width: nonnegativeFinite(width ?? 0), height: 0) }
 
-        return itemSizeCache.size(width: width) {
-            contentSize(width: width, element: data[data.startIndex])
+        return itemSizing.size(width: width, environment: contentEnvironment, reusingContent: reusingContent) {
+            let element = data[data.startIndex]
+            return (viewProvider(element), AnyHashable(identifier(element)))
         }
     }
 
     private func contentSize(width: CGFloat?, element: Element) -> CGSize {
-        measurer.size(of: viewProvider(element), identity: AnyHashable(element[keyPath: _id]), width: width)
+        itemSizing.measure(viewProvider(element), identity: AnyHashable(identifier(element)), width: width, environment: contentEnvironment)
     }
 
     private func configure(_ cell: HostingCollectionViewCell<Content>, at position: Int) {
         cell.setup(
             view: viewProvider(element(at: position)),
             id: AnyHashable(item(at: position).identity),
-            generation: contentGeneration
+            generation: contentRefresh.generation,
+            environment: contentEnvironment
         )
     }
 
@@ -884,6 +827,7 @@ public class UICollectionHStack<
     }
 
     func configure(_ configuration: CollectionHStack<Element, Data, ID, Content>) {
+        identifier = configuration.identifier
         if collectionView.contentInsetAdjustmentBehavior != configuration.contentInsetAdjustmentBehavior {
             collectionView.contentInsetAdjustmentBehavior = configuration.contentInsetAdjustmentBehavior
         }
@@ -937,8 +881,25 @@ public class UICollectionHStack<
         let sizingConfigurationChanged = newLayout != layout
             || insets != self.insets || itemSpacing != self.itemSpacing
             || itemMeasurementRevision != self.itemMeasurementRevision
+        let measurementConfigurationChanged = newLayout != layout
+            || insets.leading != self.insets.leading || insets.trailing != self.insets.trailing
+            || itemSpacing != self.itemSpacing || itemMeasurementRevision != self.itemMeasurementRevision
+        let verticalInsetsOnly = sizingConfigurationChanged && !measurementConfigurationChanged
+        // Capture against the old row packing before section insets invalidate it.
+        if sizingConfigurationChanged {
+            scrollAnchor = scrollAnchor ?? currentScrollAnchor()
+        }
+        if verticalInsetsOnly {
+            contentRefresh.geometryChanged()
+        }
 
+        let previouslyVariadic = usesVariadicWidths
         layout = newLayout
+        if previouslyVariadic != usesVariadicWidths {
+            // UICollectionView caches optional delegate capabilities on assignment.
+            collectionView.delegate = nil
+            collectionView.delegate = self
+        }
         self.insets = insets
         self.itemSpacing = itemSpacing
         self.itemMeasurementRevision = itemMeasurementRevision
@@ -962,7 +923,7 @@ public class UICollectionHStack<
 
         var newIndex = dataIndex
         var lookup: [ID: Int]?
-        let changedIDs = newIndex.update(from: newData, id: _id, prefix: dataPrefix, lookup: &lookup)
+        let changedIDs = newIndex.update(from: newData, identifier: identifier, prefix: dataPrefix, lookup: &lookup)
         let newCount = itemCount(for: newIndex)
         let hasDataChanges = changedIDs || newCount != effectiveItemCount
 
@@ -979,7 +940,12 @@ public class UICollectionHStack<
                 self.scheduleAlignedLeadingElementIDUpdate()
             }
 
-            if collectionView.window == nil {
+            // Inserting into a zero-size viewport can materialize the entire
+            // data set for UIKit's update animation. Wait for usable geometry.
+            if collectionView.window == nil || !collectionView.bounds.width.isFiniteAndPositive || !collectionView.bounds
+                .height
+                .isFiniteAndPositive
+            {
                 data = newData
                 dataIndex = newIndex
                 effectiveItemCount = newCount
@@ -1020,13 +986,13 @@ public class UICollectionHStack<
         // Every visible cell, including those configured during staged updates,
         // now predates the latest data and view provider. SwiftUI lays out the
         // representable before rendering, which lets resizes skip the refresh.
-        contentGeneration &+= 1
-        if !defersContentRefresh || hasDataChanges || sizingConfigurationChanged || window == nil {
+        contentRefresh.invalidate()
+        if !defersContentRefresh || hasDataChanges || measurementConfigurationChanged || needsEnvironmentContentRefresh || window == nil {
             refreshVisibleItems()
         } else {
-            needsContentRefresh = true
             setNeedsLayout()
         }
+        needsEnvironmentContentRefresh = false
 
         // allowBouncing
 
@@ -1041,7 +1007,7 @@ public class UICollectionHStack<
         }
 
         if sizingConfigurationChanged || hasDataChanges || wasEmpty != newData.isEmpty {
-            invalidateSizing()
+            invalidateSizing(keepingMeasurements: verticalInsetsOnly && !hasDataChanges)
         }
 
         if hasDataChanges {
@@ -1086,6 +1052,30 @@ public class UICollectionHStack<
         false
     }
 
+    private var usesVariadicWidths: Bool {
+        if case .selfSizingVariadicWidth = layout {
+            return true
+        }
+        return false
+    }
+
+    override public func responds(to selector: Selector!) -> Bool {
+        if selector == #selector(UICollectionViewDelegateFlowLayout.collectionView(_:layout:sizeForItemAt:)) {
+            return usesVariadicWidths
+        }
+        return super.responds(to: selector)
+    }
+
+    func uniformItemSize(in collectionView: UICollectionView) -> CGSize? {
+        guard !usesVariadicWidths else { return nil }
+
+        return self.collectionView(
+            collectionView,
+            layout: collectionView.collectionViewLayout,
+            sizeForItemAt: IndexPath(item: 0, section: 0)
+        )
+    }
+
     // MARK: UICollectionViewDelegateFlowLayout
 
     public func collectionView(
@@ -1111,7 +1101,9 @@ public class UICollectionHStack<
             }
         } else {
             // A size delegate must not force another collection layout while UIKit is resolving attributes.
-            size = itemSize ?? computeSizes(forWidth: bounds.width).itemSize
+            let width = collectionView.bounds.width - renderingInsets.left - renderingInsets.right
+            size = lastLaidOutWidth == width ? itemSize ?? computeSizes(forWidth: width).itemSize
+                : computeSizes(forWidth: width.positiveFinite(or: bounds.width)).itemSize
         }
 
         // UIKit can request metrics between the parent's resize and the child's
@@ -1122,7 +1114,18 @@ public class UICollectionHStack<
         let availableHeight = collectionView.bounds.height
             - contentInsets.top - contentInsets.bottom
             - sectionInsets.top - sectionInsets.bottom
-        let height = availableHeight > 0 ? min(size.height, availableHeight.nextDown) : size.height
+        let height: CGFloat
+        if availableHeight > 0, usesVariadicWidths {
+            let rowHeight = max(0, availableHeight - CGFloat(resolvedRows - 1) * layoutMetrics.spacing) / CGFloat(resolvedRows)
+            height = size.height <= rowHeight.nextUp
+                ? min(size.height, rowHeight).nextDown
+                : min(size.height, availableHeight.nextDown)
+        } else {
+            // Fit all configured rows despite floating-point packing noise.
+            let rows = min(resolvedRows, max(effectiveItemCount, 1))
+            let rowHeight = (availableHeight - CGFloat(rows - 1) * collectionView.flowLayout.minimumInteritemSpacing) / CGFloat(rows)
+            height = rowHeight > 0 ? min(size.height, rowHeight.nextDown) : size.height
+        }
 
         return CGSize(width: max(size.width, 0), height: max(height, 0))
     }
@@ -1243,14 +1246,13 @@ public class UICollectionHStack<
         after delay: TimeInterval = alignedLeadingElementIDUpdateDelay
     ) {
 
-        alignedLeadingElementIDUpdateGeneration += 1
-        let updateGeneration = alignedLeadingElementIDUpdateGeneration
-        guard alignedLeadingElementID != nil else { return }
+        guard alignedLeadingElementID != nil else {
+            alignedLeadingElementUpdate.cancel()
+            return
+        }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self, self.alignedLeadingElementIDUpdateGeneration == updateGeneration else { return }
-
-            self.updateAlignedLeadingElementID()
+        alignedLeadingElementUpdate.schedule(after: delay) { [weak self] in
+            self?.updateAlignedLeadingElementID()
         }
     }
 

@@ -1,8 +1,8 @@
 import Foundation
 
-/// Interpolates measured endpoint sizes without revisiting the discrete column
-/// count decisions between them. Both dimensions include the content's natural
-/// layout, so fixed-height text and padding are not scaled with the artwork.
+/// Interpolates item widths without revisiting discrete column-count decisions.
+/// Height must be measured at that width: wrapping text and conditional layouts
+/// can change height discontinuously between the measured endpoints.
 struct ItemSizeTransition {
     /// How far beyond either endpoint, as a fraction of the transition, a width
     /// still follows it.
@@ -27,10 +27,7 @@ struct ItemSizeTransition {
         return progress
     }
 
-    func itemSize(at progress: CGFloat, targetSize: CGSize) -> CGSize {
-        .init(
-            width: sourceItemSize.width + (targetSize.width - sourceItemSize.width) * progress,
-            height: sourceItemSize.height + (targetSize.height - sourceItemSize.height) * progress
-        )
+    func itemWidth(at progress: CGFloat) -> CGFloat {
+        sourceItemSize.width + (targetItemWidth - sourceItemSize.width) * progress
     }
 }

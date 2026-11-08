@@ -101,6 +101,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
     ) {
         self.init(
             id: \.id,
+            identifier: { $0.id },
             data: uniqueElements,
             layout: .grid(columns: CGFloat(columns), rows: rows, columnTrailingInset: columnTrailingInset),
             viewProvider: content
@@ -116,6 +117,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
     ) {
         self.init(
             id: \.id,
+            identifier: { $0.id },
             data: uniqueElements,
             layout: .grid(columns: columns, rows: rows, columnTrailingInset: 0),
             viewProvider: content
@@ -133,6 +135,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
     ) {
         self.init(
             id: \.id,
+            identifier: { $0.id },
             data: uniqueElements,
             layout: .minimumWidth(columnWidth: minWidth, rows: rows, columnFraction: columnFraction),
             viewProvider: content
@@ -148,6 +151,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
     ) {
         self.init(
             id: \.id,
+            identifier: { $0.id },
             data: uniqueElements,
             layout: variadicWidths ? .selfSizingVariadicWidth(rows: rows) : .selfSizingSameSize(rows: rows),
             viewProvider: content
@@ -161,6 +165,7 @@ public extension CollectionHStack where Element: Identifiable, ID == Element.ID 
     ) {
         self.init(
             id: \.id,
+            identifier: { $0.id },
             data: uniqueElements,
             layout: layout,
             viewProvider: content
@@ -182,6 +187,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
     ) {
         self.init(
             id: \.self,
+            identifier: { $0 },
             data: Array(0 ..< count),
             layout: .grid(
                 columns: CGFloat(columns),
@@ -202,6 +208,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
     ) {
         self.init(
             id: \.self,
+            identifier: { $0 },
             data: Array(0 ..< count),
             layout: .grid(
                 columns: columns,
@@ -223,6 +230,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
     ) {
         self.init(
             id: \.self,
+            identifier: { $0 },
             data: Array(0 ..< count),
             layout: .minimumWidth(columnWidth: minWidth, rows: rows, columnFraction: columnFraction),
             viewProvider: content
@@ -238,6 +246,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
     ) {
         self.init(
             id: \.self,
+            identifier: { $0 },
             data: Array(0 ..< count),
             layout: variadicWidths ? .selfSizingVariadicWidth(rows: rows) : .selfSizingSameSize(rows: rows),
             viewProvider: content
@@ -251,6 +260,7 @@ public extension CollectionHStack where Data == [Element], Element == Int, ID ==
     ) {
         self.init(
             id: \.self,
+            identifier: { $0 },
             data: uniqueElements,
             layout: layout,
             viewProvider: content

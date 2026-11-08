@@ -213,6 +213,7 @@ private final class FocusHarness {
         .insets(horizontal: 40)
         .itemSpacing(20)
         .scrollBehavior(.continuousLeadingEdge)
+        .contentInsetAdjustmentBehavior(.never)
         .initialElement(id: initialID)
         .focusBehavior(initial: initial, returning: returning)
         if carousel {
@@ -230,7 +231,6 @@ private final class FocusHarness {
             initialElementID: configuration.initialElementID, viewProvider: configuration.viewProvider
         )
         view.configure(configuration)
-        collection.contentInsetAdjustmentBehavior = .never
         window.rootViewController = controller
         controller.view.addSubview(outside)
         outside.setTitle("Outside the collection", for: .normal)

@@ -18,6 +18,7 @@ public struct CollectionHStack<
 > where Data.Element == Element, Data.Index == Int {
 
     let id: KeyPath<Element, ID>
+    let identifier: (Element) -> ID
     var alignedLeadingElementID: Binding<ID?>?
     var allowBouncing: Bool
     var clipsToBounds: Bool
@@ -47,6 +48,7 @@ public struct CollectionHStack<
 
     init(
         id: KeyPath<Element, ID>,
+        identifier: ((Element) -> ID)? = nil,
         alignedLeadingElementID: Binding<ID?>? = nil,
         allowBouncing: Bool = true,
         clipsToBounds: Bool = defaultClipsToBounds,
@@ -68,6 +70,7 @@ public struct CollectionHStack<
         viewProvider: @escaping (Element) -> Content
     ) {
         self.id = id
+        self.identifier = identifier ?? { $0[keyPath: id] }
         self.alignedLeadingElementID = alignedLeadingElementID
         self.allowBouncing = allowBouncing
         self.clipsToBounds = clipsToBounds
@@ -116,11 +119,13 @@ extension CollectionHStack: UIViewRepresentable {
             initialElementID: initialElementID,
             viewProvider: viewProvider
         )
+        view.updateEnvironment(context.environment)
         view.configure(self)
         return view
     }
 
     public func updateUIView(_ view: UIViewType, context: Context) {
+        view.updateEnvironment(context.environment)
         view.configure(self)
         view.update(
             newData: data,
@@ -145,6 +150,7 @@ extension CollectionHStack: UIViewRepresentable {
     ) -> CGSize? {
         guard let width = proposal.width, width.isFiniteAndPositive else { return nil }
 
+        uiView.updateEnvironment(context.environment)
         return uiView.fittingSize(forProposedWidth: width)
     }
 }

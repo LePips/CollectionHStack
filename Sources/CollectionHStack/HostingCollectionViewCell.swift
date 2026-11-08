@@ -2,30 +2,27 @@
 import SwiftUI
 
 final class HostingCollectionViewCell<Content: View>: UICollectionViewCell {
-    private var hostingController: UIHostingController<AnyView>?
+    private var hostingController: UIHostingController<CollectionItemContent<Content>>?
     /// The collection's content generation when this cell's view was last supplied.
     private(set) var contentGeneration = 0
 
-    func setup(view: Content, id: AnyHashable? = nil, generation: Int = 0) {
+    func setup(view: Content, id: AnyHashable? = nil, generation: Int = 0, environment: EnvironmentValues? = nil) {
         contentGeneration = generation
-        let root = AnyView(view.id(id))
+        let root = CollectionItemContent(content: view, identity: id, environment: environment)
         if let hostingController {
             hostingController.rootView = root
             return
         }
         let controller = UIHostingController(rootView: root)
-        // The row owns its content insets. Individual cells must keep their
-        // full content bounds as they pass underneath surrounding bars.
-        controller.safeAreaRegions.remove(.container)
+        // The enclosing collection owns viewport and keyboard avoidance. A nested
+        // host must not apply either again; iOS 18 can treat a partially offscreen
+        // cell's bottom inset as a keyboard inset and shift its content upward.
+        controller.safeAreaRegions = []
         controller.view.backgroundColor = nil
-        controller.view.translatesAutoresizingMaskIntoConstraints = false
+        // All HStack layouts supply measured item bounds, including variadic widths.
+        controller.view.frame = contentView.bounds
+        controller.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         contentView.addSubview(controller.view)
-        NSLayoutConstraint.activate([
-            controller.view.topAnchor.constraint(equalTo: contentView.topAnchor),
-            controller.view.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            controller.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            controller.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-        ])
         hostingController = controller
     }
 }

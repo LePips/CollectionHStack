@@ -25,10 +25,11 @@ struct InitialElementTests {
         case .continuousLeadingEdge, .columnPaging: frame.minX - 20
         case .continuous, .fullPaging: frame.midX - viewportWidth(view) / 2
         }
-        #expect(abs(offset(view) - expected) < 0.5)
+        // Centered offsets can round by exactly half a point on 1x TV displays.
+        #expect(abs(offset(view) - expected) <= 0.5)
         // A queued sizing/layout pass must not reset the initial position.
         try await Task.sleep(for: .milliseconds(200))
-        #expect(abs(offset(view) - expected) < 0.5)
+        #expect(abs(offset(view) - expected) <= 0.5)
     }
 
     @Test(arguments: 0 ..< 4, [false, true])
@@ -57,9 +58,9 @@ struct InitialElementTests {
         case .continuousLeadingEdge, .columnPaging: frame.minX - 20
         case .continuous, .fullPaging: frame.midX - viewportWidth(view) / 2
         }
-        #expect(abs(offset(view) - expected) < 0.5)
+        #expect(abs(offset(view) - expected) <= 0.5)
         try await Task.sleep(for: .milliseconds(200))
-        #expect(abs(offset(view) - expected) < 0.5)
+        #expect(abs(offset(view) - expected) <= 0.5)
     }
 
     @Test(arguments: [false, true], [false, true])
@@ -120,9 +121,9 @@ struct InitialElementTests {
             case .continuousLeadingEdge, .columnPaging: frame.minX - 20
             case .continuous, .fullPaging: frame.midX - viewportWidth(view) / 2
             }
-            #expect(abs(offset(view) - expected) < 0.5)
+            #expect(abs(offset(view) - expected) <= 0.5)
             try await Task.sleep(for: .milliseconds(200))
-            #expect(abs(offset(view) - expected) < 0.5)
+            #expect(abs(offset(view) - expected) <= 0.5)
         }
     }
 
@@ -229,10 +230,18 @@ struct InitialElementTests {
     #endif
 
     private func configuration(data: [Int] = Array(100 ... 120)) -> Configuration {
-        CollectionHStack(uniqueElements: data, id: \.self, columns: 2, rows: 2) { _ in ColorContent() }
+        let configuration = CollectionHStack(uniqueElements: data, id: \.self, columns: 2, rows: 2) { _ in ColorContent() }
             .insets(horizontal: 20)
             .itemSpacing(10)
             .scrollBehavior(.continuousLeadingEdge)
+            .clipsToBounds(true)
+        #if canImport(UIKit)
+        // Keep the fixture's explicit viewport policy through configure/update,
+        // rather than restoring tvOS overscan adjustment after presentation.
+        return configuration.contentInsetAdjustmentBehavior(.never)
+        #else
+        return configuration
+        #endif
     }
 
     private func makeView(_ configuration: Configuration) -> NativeView {

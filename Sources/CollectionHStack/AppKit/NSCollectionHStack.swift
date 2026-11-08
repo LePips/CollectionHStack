@@ -13,21 +13,27 @@ extension CollectionHStack: NSViewRepresentable {
     public typealias NSViewType = NSCollectionHStack<Element, Data, ID, Content>
 
     public func makeNSView(context: Context) -> NSViewType {
-        NSViewType(configuration: self)
+        let view = NSViewType(configuration: self)
+        view.updateEnvironment(context.environment)
+        return view
     }
 
     public func updateNSView(_ view: NSViewType, context: Context) {
+        view.updateEnvironment(context.environment)
         view.update(
             configuration: self,
             isScrollEnabled: context.environment.isScrollEnabled,
-            dynamicTypeSize: context.environment.dynamicTypeSize
+            dynamicTypeSize: context.environment.dynamicTypeSize,
+            defersContentRefresh: true
         )
+        view.prepareForLayout()
     }
 
     public func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSViewType, context: Context) -> CGSize? {
         guard let width = proposal.width, width.isFiniteAndPositive else { return nil }
 
-        return nsView.fittingSize(forWidth: width)
+        nsView.updateEnvironment(context.environment)
+        return nsView.fittingSize(forProposedWidth: width)
     }
 
     public static func dismantleNSView(_ view: NSViewType, coordinator: ()) {
@@ -47,13 +53,7 @@ public final class NSCollectionHStack<
         let repetition: Int
     }
 
-    private enum ScrollAnchor {
-        case leading
-        case trailing
-        case item(index: Int, fraction: CGFloat, centered: Bool)
-    }
-
-    private var scrollAnchor: ScrollAnchor?
+    private var scrollAnchor: CollectionScrollAnchor?
     private var anchorOffset: CGFloat?
     private var applyingLayout = false
     private var configuration: CollectionHStack<Element, Data, ID, Content>
@@ -70,15 +70,18 @@ public final class NSCollectionHStack<
     }
 
     private var itemCount = 0
-    private var itemSizeCache = ItemSizeCache()
-    private var measurer = ContentMeasurer<Content>()
+    private let itemSizing = CollectionItemSizing<Content>()
+    private let contentRefresh = CollectionContentRefresh()
+    private var resizeTransition = CollectionResizeTransition()
     private var variableSizes: [ID: CGSize] = [:]
     private var cachedSize: (width: CGFloat, item: CGSize, height: CGFloat)?
     private var appliedWidth: CGFloat?
     private var dynamicTypeSize: DynamicTypeSize?
+    private var contentEnvironment: EnvironmentValues?
+    private var measurementEnvironment: ContentMeasurementEnvironment?
     private var reachedEdges: Set<Edge> = []
     private var prefetched: Set<ID> = []
-    private var settleWork: DispatchWorkItem?
+    private let settleWork = CollectionDeferredUpdate()
     private var gestureStart: CGFloat?
     private var isAnimatingScroll = false
     private var scrollAnimationGeneration = 0
@@ -97,7 +100,7 @@ public final class NSCollectionHStack<
         collectionView.collectionViewLayout = collectionLayout
         collectionView.backgroundColors = [.clear]
         collectionView.isSelectable = false
-        collectionView.register(HostingCollectionViewItem.self, forItemWithIdentifier: .init("content"))
+        collectionView.register(HostingCollectionViewItem<Content>.self, forItemWithIdentifier: .init("content"))
         scrollView.drawsBackground = false
         scrollView.borderType = .noBorder
         scrollView.hasHorizontalScroller = false
@@ -115,8 +118,8 @@ public final class NSCollectionHStack<
         dataSource = NSCollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collection, path, id in
             guard let self, let element = self.element(at: path.item, id: id.id) else { return nil }
 
-            let item = collection.makeItem(withIdentifier: .init("content"), for: path) as! HostingCollectionViewItem
-            item.configure(self.configuration.viewProvider(element), id: AnyHashable(id))
+            let item = collection.makeItem(withIdentifier: .init("content"), for: path) as! HostingCollectionViewItem<Content>
+            item.configure(self.configuration.viewProvider(element), id: AnyHashable(id), generation: self.contentRefresh.generation, environment: self.contentEnvironment)
             return item
         }
         scrollView.contentView.postsBoundsChangedNotifications = true
@@ -129,7 +132,7 @@ public final class NSCollectionHStack<
         scrollView.willScroll = { [weak self] in
             guard let self else { return }
 
-            self.settleWork?.cancel()
+            self.settleWork.cancel()
             self.cancelScrollAnimation()
             if self.gestureStart == nil {
                 self.gestureStart = self.scrollView.contentView.bounds.minX
@@ -152,6 +155,7 @@ public final class NSCollectionHStack<
 
     override public func layout() {
         super.layout()
+        defer { refreshContentIfSettled() }
         guard bounds.width.isFiniteAndPositive else { return }
 
         if appliedWidth != bounds.width {
@@ -187,7 +191,8 @@ public final class NSCollectionHStack<
     func update(
         configuration new: CollectionHStack<Element, Data, ID, Content>,
         isScrollEnabled: Bool,
-        dynamicTypeSize: DynamicTypeSize
+        dynamicTypeSize: DynamicTypeSize,
+        defersContentRefresh: Bool = false
     ) {
         if configuration.initialElementID != new.initialElementID {
             hasEvaluatedInitialElement = false
@@ -196,13 +201,21 @@ public final class NSCollectionHStack<
         let changedSizing = configuration.layout != new.layout || configuration.insets != new.insets
             || configuration.itemSpacing != new.itemSpacing || self.dynamicTypeSize != dynamicTypeSize
             || configuration.itemMeasurementRevision != new.itemMeasurementRevision
+        let changedMeasurement = configuration.layout != new.layout
+            || configuration.insets.leading != new.insets.leading || configuration.insets.trailing != new.insets.trailing
+            || configuration.itemSpacing != new.itemSpacing || self.dynamicTypeSize != dynamicTypeSize
+            || configuration.itemMeasurementRevision != new.itemMeasurementRevision
+        let verticalInsetsOnly = changedSizing && !changedMeasurement
+        if verticalInsetsOnly {
+            contentRefresh.geometryChanged()
+        }
         let changedCarousel = configuration.isCarousel != new.isCarousel
         if configuration.proxy !== new.proxy, configuration.proxy.collectionView === self {
             configuration.proxy.collectionView = nil
         }
         var newIndex = dataIndex
         var newLookup = indicesByID
-        let changedData = newIndex.update(from: new.data, id: new.id, prefix: new.dataPrefix, retainingLookup: &newLookup)
+        let changedData = newIndex.update(from: new.data, identifier: new.identifier, prefix: new.dataPrefix, retainingLookup: &newLookup)
         if changedData {
             cancelPrefetch()
         }
@@ -221,14 +234,16 @@ public final class NSCollectionHStack<
         clipsToBounds = new.clipsToBounds
 
         if changedSizing || changedData {
-            invalidateSizing()
+            invalidateSizing(keepingMeasurements: verticalInsetsOnly && !changedData)
         }
 
+        contentRefresh.invalidate()
         if changedData || changedCarousel {
             let count = new.isCarousel && ids.isNotEmpty ? max(100, ids.count) : ids.count
             applySnapshot(count: count)
             reachedEdges.removeAll()
-        } else {
+        }
+        if !defersContentRefresh || changedData || changedCarousel || changedMeasurement || window == nil {
             refreshVisibleItems()
         }
 
@@ -268,22 +283,60 @@ public final class NSCollectionHStack<
     }
 
     private func refreshVisibleItems() {
+        contentRefresh.didRefresh()
         for path in collectionView.indexPathsForVisibleItems() {
             guard let id = dataSource.itemIdentifier(for: path), let element = element(at: path.item, id: id.id),
-                  let item = collectionView.item(at: path) as? HostingCollectionViewItem else { continue }
+                  let item = collectionView.item(at: path) as? HostingCollectionViewItem<Content>,
+                  item.contentGeneration != contentRefresh.generation else { continue }
 
-            item.configure(configuration.viewProvider(element), id: AnyHashable(id))
+            item.configure(configuration.viewProvider(element), id: AnyHashable(id), generation: contentRefresh.generation, environment: contentEnvironment)
         }
     }
 
-    private func invalidateSizing() {
-        itemSizeCache = ItemSizeCache()
-        measurer = ContentMeasurer()
+    func updateEnvironment(_ environment: EnvironmentValues) {
+        let signature = ContentMeasurementEnvironment(environment)
+        let measurementChanged = measurementEnvironment != signature
+        measurementEnvironment = signature
+        contentEnvironment = environment
+        if measurementChanged {
+            invalidateSizing()
+        }
+    }
+
+    private func refreshContentIfSettled() {
+        contentRefresh.refreshIfSettled(isAttached: window != nil) { [weak self] in
+            self?.refreshVisibleItems()
+        }
+    }
+
+    private func invalidateSizing(keepingMeasurements: Bool = false) {
+        if !keepingMeasurements {
+            itemSizing.invalidate()
+            variableSizes.removeAll(keepingCapacity: true)
+        }
+        resizeTransition = CollectionResizeTransition()
         cachedSize = nil
-        variableSizes.removeAll(keepingCapacity: true)
         appliedWidth = nil
         needsLayout = true
         invalidateIntrinsicContentSize()
+    }
+
+    func prepareForLayout() {
+        resizeTransition.prepareForLayout()
+    }
+
+    func fittingSize(forProposedWidth width: CGFloat) -> CGSize {
+        guard width.isFiniteAndPositive else { return fittingSize(forWidth: width) }
+
+        if resizeTransition.propose(
+            width: width, displayedWidth: bounds.width,
+            displayedItemSize: collectionLayout.itemSize,
+            displayedHeight: intrinsicHeight, pixel: 1 / max(window?.backingScaleFactor ?? 1, 1),
+            targetItemWidth: layoutMetrics.itemWidth(for: width)
+        ) {
+            cachedSize = nil
+        }
+        return fittingSize(forWidth: width)
     }
 
     func fittingSize(forWidth width: CGFloat) -> CGSize {
@@ -298,7 +351,11 @@ public final class NSCollectionHStack<
             return (CGSize(width: NSView.noIntrinsicMetric, height: cachedSize.height), cachedSize.item)
         }
         let metrics = layoutMetrics
-        let item = measure(width: metrics.itemWidth(for: width))
+        let item: CGSize = if let transition = resizeTransition.current, let progress = transition.progress(for: width) {
+            measure(width: transition.itemWidth(at: progress), reusingContent: true)
+        } else {
+            measure(width: metrics.itemWidth(for: width))
+        }
         let height = metrics.height(for: item)
         cachedSize = (width, item, height)
         return (CGSize(width: NSView.noIntrinsicMetric, height: height), item)
@@ -312,21 +369,25 @@ public final class NSCollectionHStack<
         layoutMetrics.rows
     }
 
-    private func measure(width: CGFloat?) -> CGSize {
+    private func measure(width: CGFloat?, reusingContent: Bool = false) -> CGSize {
         guard ids.isNotEmpty else { return CGSize(width: width ?? 0, height: 0) }
 
-        return itemSizeCache.size(width: width) {
+        return itemSizing.size(width: width, environment: contentEnvironment, reusingContent: reusingContent) {
             let element = configuration.data[configuration.data.startIndex]
-            return measurer.size(of: configuration.viewProvider(element), identity: AnyHashable(ids[0]), width: width)
+            return (configuration.viewProvider(element), AnyHashable(configuration.identifier(element)))
         }
     }
 
     private func applyLayout(forWidth width: CGFloat) {
+        resizeTransition.apply(width: width, pixel: 1 / max(window?.backingScaleFactor ?? 1, 1))
+        if let appliedWidth, appliedWidth != width {
+            contentRefresh.geometryChanged()
+        }
         // Bounds changes during retiling can clamp the old pixel offset before we
         // get here. Use the anchor recorded while the previous layout was valid.
         let anchor = scrollAnchor
         applyingLayout = true
-        settleWork?.cancel()
+        settleWork.cancel()
         cancelScrollAnimation()
         gestureStart = nil
         defer {
@@ -356,7 +417,7 @@ public final class NSCollectionHStack<
                 }
                 guard let element = element(at: index, id: item.id) else { return nil }
 
-                let size = measurer.size(of: configuration.viewProvider(element), identity: AnyHashable(item.id), width: nil)
+                let size = itemSizing.measure(configuration.viewProvider(element), identity: AnyHashable(item.id), width: nil, environment: contentEnvironment)
                 variableSizes[item.id] = size
                 return size
             }
@@ -416,13 +477,19 @@ public final class NSCollectionHStack<
         }
     }
 
-    private func restoreScrollAnchor(_ anchor: ScrollAnchor) {
+    private func restoreScrollAnchor(_ anchor: CollectionScrollAnchor) {
         let offset: CGFloat
         switch anchor {
         case .leading:
             offset = 0
+
         case .trailing:
             offset = maximumOffset
+
+        case let .page(page):
+            let width = max(1, bounds.width - configuration.insets.leading - configuration.insets.trailing + configuration.itemSpacing)
+            offset = page * width
+
         case let .item(index, fraction, centered):
             guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0)) else { return }
 
@@ -435,6 +502,7 @@ public final class NSCollectionHStack<
 
     public func snapshotReload() {
         invalidateSizing()
+        contentRefresh.invalidate()
         refreshVisibleItems()
     }
 
@@ -510,10 +578,12 @@ public final class NSCollectionHStack<
     }
 
     private func scheduleSettle(snap: Bool) {
-        settleWork?.cancel()
-        guard !disconnected, !isAnimatingScroll, !scrollView.isTrackingScroll else { return }
+        guard !disconnected, !isAnimatingScroll, !scrollView.isTrackingScroll else {
+            settleWork.cancel()
+            return
+        }
 
-        let work = DispatchWorkItem { [weak self] in
+        settleWork.schedule(after: 0.12) { [weak self] in
             guard let self else { return }
 
             if snap || self.gestureStart != nil {
@@ -525,8 +595,6 @@ public final class NSCollectionHStack<
                 self.publishScrollState()
             }
         }
-        settleWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
     }
 
     /// Paging advances at most one column/page per gesture. Continuous alignment can cross many columns.
@@ -662,7 +730,8 @@ public final class NSCollectionHStack<
 
     func disconnect() {
         disconnected = true
-        settleWork?.cancel()
+        contentRefresh.didRefresh()
+        settleWork.cancel()
         cancelScrollAnimation()
         cancelPrefetch()
 

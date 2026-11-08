@@ -320,7 +320,7 @@ struct MacOSCollectionHStackTests {
 
     @Test
     func `hosting views are reused`() {
-        let item = HostingCollectionViewItem()
+        let item = HostingCollectionViewItem<Text>()
         item.configure(Text("First"), id: 1)
         let host = item.view.subviews.first
         item.prepareForReuse()

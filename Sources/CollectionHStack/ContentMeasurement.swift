@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Read the SwiftUI layout result before a hosting view rounds it to physical pixels.
-/// Keep fractional dimensions accurate as the collection's width changes.
+/// Caching a rounded ratio causes visible errors to accumulate during window resizing.
 final class ContentMeasurement {
     var size: CGSize = .zero
 }
@@ -33,11 +33,12 @@ final class ContentMeasurer<Content: View> {
         let identity: AnyHashable
         let width: CGFloat?
         let measurement: ContentMeasurement
+        let environment: EnvironmentValues?
 
         var body: some View {
             // Like a reused cell, a different element starts with fresh state.
             ContentMeasurementLayout(width: width, measurement: measurement) {
-                content.frame(width: width).id(identity)
+                EnvironmentAwareContent(content: content.frame(width: width).id(identity), environment: environment)
             }
         }
     }
@@ -49,8 +50,16 @@ final class ContentMeasurer<Content: View> {
     private var host: NSHostingView<Root>?
     #endif
 
-    func size(of content: Content, identity: AnyHashable, width: CGFloat?) -> CGSize {
-        let root = Root(content: content, identity: identity, width: width, measurement: measurement)
+    /// Animation frames change the proposal, not the item. Reuse the same content
+    /// value as well as the hosting hierarchy while measuring its actual layout.
+    func size(reusingContentAt width: CGFloat?) -> CGSize? {
+        guard let host else { return nil }
+
+        return size(of: host.rootView.content, identity: host.rootView.identity, width: width, environment: host.rootView.environment)
+    }
+
+    func size(of content: Content, identity: AnyHashable, width: CGFloat?, environment: EnvironmentValues? = nil) -> CGSize {
+        let root = Root(content: content, identity: identity, width: width, measurement: measurement, environment: environment)
         #if canImport(UIKit)
         if let host {
             host.rootView = root

@@ -35,7 +35,7 @@ struct CollectionHStackSizingTests {
         stack.layoutIfNeeded()
         #expect(stack.intrinsicContentSize.height == 160)
         let collection = try #require(stack.subviews.compactMap { $0 as? UICollectionView }.first)
-        #expect(collection.flowLayout.itemSize.height == 75)
+        #expect(abs(collection.flowLayout.itemSize.height - 75) < 0.001)
 
         stack.update(
             newData: [0],
@@ -289,6 +289,35 @@ struct CollectionHStackSizingTests {
         #expect(abs(stack.fittingSize(forWidth: 402).height - 151 / 3) < 0.001)
     }
 
+    @Test(arguments: [2, 3, 4], [CGFloat(1), 2, 3])
+    func `fractional item heights retain every requested row`(rows: Int, displayScale: CGFloat) throws {
+        let counter = MeasurementCounter()
+        // A fine poster resize produces this value just above a half point.
+        counter.height = 364.50000000000006
+        for layout: CollectionHStackLayout in [
+            .grid(columns: 2, rows: rows, columnTrailingInset: 0),
+            .selfSizingVariadicWidth(rows: rows),
+        ] {
+            let stack = makeStack(
+                counter: counter,
+                layout: layout,
+                data: Array(0 ..< 20)
+            )
+            stack.traitOverrides.displayScale = displayScale
+            stack.frame = CGRect(origin: .zero, size: stack.fittingSize(forWidth: 700))
+            stack.layoutIfNeeded()
+            let collection = try #require(stack.subviews.compactMap { $0 as? UICollectionView }.first)
+            collection.layoutIfNeeded()
+            let first = try #require(collection.collectionViewLayout.layoutAttributesForItem(at: IndexPath(item: 0, section: 0))).frame
+            for row in 1 ..< rows {
+                let frame = try #require(collection.collectionViewLayout.layoutAttributesForItem(at: IndexPath(item: row, section: 0)))
+                    .frame
+                #expect(abs(frame.minX - first.minX) < 0.001, "Every requested row fits in the first column")
+                #expect(frame.minY >= first.maxY + 10 - 0.001)
+            }
+        }
+    }
+
     @Test
     func `transitional collection height does not change measured content height`() throws {
         let stack = makeAspectRatioStack()
@@ -308,6 +337,31 @@ struct CollectionHStackSizingTests {
             #expect(abs(item.height - height) < 0.001)
             #expect(stack.fittingSize(forWidth: 210).height == 150)
         }
+    }
+
+    @Test(arguments: [1, 2, 3], [
+        EdgeInsets(top: 7, leading: 0, bottom: 31, trailing: 0),
+        EdgeInsets(top: 31, leading: 0, bottom: 7, trailing: 0),
+        EdgeInsets(top: 0.3, leading: 0, bottom: 10.7, trailing: 0),
+    ])
+    func `asymmetric vertical insets preserve requested rows and edge spacing`(rows: Int, insets: EdgeInsets) throws {
+        let counter = MeasurementCounter()
+        counter.height = 364.50000000000006
+        let layout = CollectionHStackLayout.grid(columns: 2, rows: rows, columnTrailingInset: 0)
+        let stack = makeStack(counter: counter, layout: layout, data: Array(0 ..< 20))
+        stack.traitOverrides.displayScale = 2
+        stack.update(newData: Array(0 ..< 20), alignedLeadingElementID: nil, layout: layout, insets: insets)
+        stack.frame = CGRect(origin: .zero, size: stack.fittingSize(forWidth: 700))
+        stack.layoutIfNeeded()
+        let collection = try #require(stack.subviews.compactMap { $0 as? UICollectionView }.first)
+        collection.layoutIfNeeded()
+        let first = try #require(collection.collectionViewLayout.layoutAttributesForItem(at: IndexPath(item: 0, section: 0))).frame
+        let last = try #require(collection.collectionViewLayout.layoutAttributesForItem(at: IndexPath(item: rows - 1, section: 0))).frame
+        #expect(abs(first.minY - insets.top) < 1)
+        #expect(abs(first.minX - last.minX) < 0.001)
+        #expect(collection.bounds.height - last.maxY >= insets.bottom - 0.5)
+        #expect(collection.flowLayout.sectionInset.top == insets.top)
+        #expect(collection.flowLayout.sectionInset.bottom == insets.bottom)
     }
 
     @Test

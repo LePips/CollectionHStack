@@ -9,13 +9,16 @@ import Testing
 struct MacOSResizeTests {
     @Test(arguments: 0 ..< 4)
     func `hosted artwork and text resize together`(style: Int) async throws {
-        let host = NSHostingView(rootView: VStack(spacing: 0) {
-            CollectionHStack(count: 10000, columns: 3, rows: 2) { _ in
-                CompositeCell(style: style)
+        let environment = ResizeEnvironment()
+        let host = NSHostingView(rootView: ResizeEnvironmentProbe(environment: environment) {
+            VStack(spacing: 0) {
+                CollectionHStack(count: 10000, columns: 3, rows: 2) { _ in
+                    CompositeCell(style: style)
+                }
+                .insets(horizontal: 20)
+                .itemSpacing(10)
+                Spacer(minLength: 0)
             }
-            .insets(horizontal: 20)
-            .itemSpacing(10)
-            Spacer(minLength: 0)
         })
         let window = present(host)
         defer { window.close() }
@@ -28,9 +31,10 @@ struct MacOSResizeTests {
             let viewport = try #require(collection.enclosingScrollView)
             let item = try #require(collection.collectionViewLayout?.layoutAttributesForItem(at: IndexPath(item: 0, section: 0)))
             let itemWidth = (viewport.bounds.width - 60) / 3
-            let reference = NSHostingController(rootView: CompositeCell(style: style)
+            let reference = try NSHostingController(rootView: CompositeCell(style: style)
                 .frame(width: itemWidth)
-                .fixedSize(horizontal: false, vertical: true))
+                .fixedSize(horizontal: false, vertical: true)
+                .environment(\.self, #require(environment.values)))
             let expected = reference.sizeThatFits(in: CGSize(width: itemWidth, height: 1200))
             #expect(abs(item.size.width - itemWidth) < 0.1)
             #expect(abs(item.size.height - expected.height) < 1)
@@ -168,6 +172,41 @@ struct MacOSResizeTests {
         }
     }
 
+    @Test
+    func `animated proposals use the shared endpoint transition`() {
+        let view = NSCollectionHStack(configuration: CollectionHStack(count: 1000, minWidth: 120, columnFraction: 0.5) { _ in
+            CompositeCell(style: 0)
+        }
+        .insets(horizontal: 20)
+        .itemSpacing(10))
+        let window = present(view)
+        defer { view.disconnect()
+            window.close()
+        }
+        func apply(_ width: CGFloat) -> CGSize {
+            let size = view.fittingSize(forProposedWidth: width)
+            window.setContentSize(size)
+            view.frame = CGRect(origin: .zero, size: size)
+            view.needsLayout = true
+            view.layoutSubtreeIfNeeded()
+            return view.collectionLayout.itemSize
+        }
+        let target = apply(700)
+        view.prepareForLayout()
+        let source = apply(1000)
+        view.prepareForLayout()
+        _ = view.fittingSize(forProposedWidth: 700)
+        for step in 1 ... 60 {
+            let width = CGFloat(1000 - step * 5)
+            _ = view.fittingSize(forProposedWidth: width + 0.25)
+            let item = apply(width)
+            let progress = (1000 - width) / 300
+            #expect(abs(item.width - (source.width + (target.width - source.width) * progress)) < 0.5)
+            #expect(abs(item.height - (source.height + (target.height - source.height) * progress)) < 1)
+        }
+        #expect(abs(view.collectionLayout.itemSize.width - target.width) < 0.5)
+    }
+
     private func findCollection(_ view: NSView) -> NSCollectionView? {
         if let collection = view as? NSCollectionView {
             return collection
@@ -195,6 +234,23 @@ struct MacOSResizeTests {
         view.frame = CGRect(origin: .zero, size: size)
         view.needsLayout = true
         view.layoutSubtreeIfNeeded()
+    }
+}
+
+private final class ResizeEnvironment {
+    var values: EnvironmentValues?
+}
+
+private struct ResizeEnvironmentProbe<Content: View>: View {
+    @Environment(\.self)
+    private var values
+    let environment: ResizeEnvironment
+    @ViewBuilder
+    let content: () -> Content
+
+    var body: some View {
+        environment.values = values
+        return content()
     }
 }
 #endif
