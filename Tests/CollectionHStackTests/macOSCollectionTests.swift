@@ -297,7 +297,34 @@ struct MacOSCollectionHStackTests {
     }
 
     @Test
-    func `all scroll behaviors respect their paging contract`() {
+    func `RTL carousel growth preserves the visible column`() async throws {
+        let view = NSCollectionHStack(configuration: CollectionHStack(count: 4, columns: 2) { _ in
+            Color.blue.frame(height: 40)
+        }
+        .asCarousel()
+        .scrollBehavior(.columnPaging))
+        var environment = EnvironmentValues()
+        environment.layoutDirection = .rightToLeft
+        view.updateEnvironment(environment)
+        let window = makeWindow(view)
+        defer { view.disconnect()
+            window.close()
+        }
+        view.scrollTo(index: 99, animated: false)
+        let path = IndexPath(item: 99, section: 0)
+        func visibleFrame() throws -> CGRect {
+            let item = try #require(view.collectionView.item(at: path))
+            return item.view.convert(item.view.bounds, to: view)
+        }
+        let before = try visibleFrame()
+        try await Task.sleep(for: .milliseconds(400))
+        view.layoutSubtreeIfNeeded()
+        #expect(view.collectionView.numberOfItems(inSection: 0) == 200)
+        #expect(try visibleFrame() == before)
+    }
+
+    @Test(arguments: [LayoutDirection.leftToRight, .rightToLeft])
+    func `all scroll behaviors respect their paging contract`(direction: LayoutDirection) {
         for behavior: CollectionHStackScrollBehavior in [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging] {
             let view = NSCollectionHStack(configuration: CollectionHStack(count: 100, columns: 2) { _ in
                 Color.blue.frame(height: 40)
@@ -307,7 +334,13 @@ struct MacOSCollectionHStackTests {
             .scrollBehavior(behavior))
             view.frame = CGRect(x: 0, y: 0, width: 300, height: 40)
             view.layoutSubtreeIfNeeded()
-            let result = view.settledOffset(proposed: 700, gestureStart: 0)
+            var environment = EnvironmentValues()
+            environment.layoutDirection = direction
+            view.updateEnvironment(environment)
+            view.layoutSubtreeIfNeeded()
+            let start = direction == .rightToLeft ? view.collectionLayout.collectionViewContentSize.width - 300 : 0
+            let proposed = direction == .rightToLeft ? start - 700 : 700
+            let result = abs(view.settledOffset(proposed: proposed, gestureStart: start) - start)
             switch behavior {
             case .continuous: #expect(result == 700)
             case .continuousLeadingEdge: #expect(result == 725)

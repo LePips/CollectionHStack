@@ -6,11 +6,17 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct OverflowVisibilityTests {
-    @Test(arguments: 0 ..< 4, [false, true])
+    @Test(arguments: 0 ..< 4, [LayoutDirection.leftToRight, .rightToLeft])
     func `unclipped rows keep cells visible beyond their layout bounds`(
         behaviorIndex: Int,
-        leadingOverflow: Bool
+        direction: LayoutDirection
     ) async throws {
+        for leadingOverflow in [true, false] {
+            try await checkOverflow(behaviorIndex: behaviorIndex, leadingOverflow: leadingOverflow, direction: direction)
+        }
+    }
+
+    private func checkOverflow(behaviorIndex: Int, leadingOverflow: Bool, direction: LayoutDirection) async throws {
         let behavior: CollectionHStackScrollBehavior = [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging][behaviorIndex]
         let configuration = CollectionHStack(
             uniqueElements: Array(0 ..< 100),
@@ -19,7 +25,7 @@ struct OverflowVisibilityTests {
             Color.blue.overlay(Text("\(item)")).frame(height: 100)
         }
         .clipsToBounds(false)
-        .insets(horizontal: 16)
+        .insets(.init(top: 0, leading: 16, bottom: 0, trailing: 8))
         .scrollBehavior(behavior)
         .contentInsetAdjustmentBehavior(.never)
 
@@ -34,6 +40,9 @@ struct OverflowVisibilityTests {
             proxy: .init(), scrollBehavior: configuration.scrollBehavior,
             viewProvider: configuration.viewProvider
         )
+        var environment = EnvironmentValues()
+        environment.layoutDirection = direction
+        stack.updateEnvironment(environment)
         stack.configure(configuration)
 
         let controller = UIViewController()
@@ -45,7 +54,7 @@ struct OverflowVisibilityTests {
 
         let width = window.bounds.width - 84
         let fitted = stack.fittingSize(forWidth: width)
-        stack.frame = CGRect(x: leadingOverflow ? 84 : 0, y: 100, width: width, height: fitted.height)
+        stack.frame = CGRect(x: leadingOverflow == (direction == .leftToRight) ? 84 : 0, y: 100, width: width, height: fitted.height)
         controller.view.layoutIfNeeded()
         stack.layoutIfNeeded()
         let collection = try #require(stack.subviews.compactMap { $0 as? UICollectionView }.first)
@@ -85,9 +94,10 @@ struct OverflowVisibilityTests {
         collection.layoutIfNeeded()
         let aligned = try #require(collection.cellForItem(at: target))
         let alignedFrame = collection.convert(aligned.frame, to: stack)
-        #expect(abs(alignedFrame.width - (width - 52) / 3) < 0.001)
+        #expect(abs(alignedFrame.width - (width - 44) / 3) < 0.001)
         if behavior == .continuousLeadingEdge || behavior == .columnPaging {
-            #expect(abs(alignedFrame.minX - 16) < 0.001)
+            let leadingInset = direction == .leftToRight ? alignedFrame.minX : width - alignedFrame.maxX
+            #expect(abs(leadingInset - 16) < 0.001)
             let proposed = CGPoint(x: collection.contentOffset.x + alignedFrame.width * 0.8, y: 0)
             let snapped = collection.collectionViewLayout.targetContentOffset(
                 forProposedContentOffset: proposed, withScrollingVelocity: CGPoint(x: 1, y: 0)
@@ -107,7 +117,7 @@ struct OverflowVisibilityTests {
             #expect(abs(alignedFrame.midX - width / 2) < 0.001)
         }
         if behavior == .fullPaging {
-            let page = width - 32 + 10
+            let page = width - 24 + 10
             let snapped = collection.collectionViewLayout.targetContentOffset(
                 forProposedContentOffset: CGPoint(x: page * 0.8, y: 0), withScrollingVelocity: CGPoint(x: 1, y: 0)
             )
@@ -117,7 +127,9 @@ struct OverflowVisibilityTests {
         stack.scrollTo(index: 99, animated: false)
         collection.layoutIfNeeded()
         let last = try #require(collection.cellForItem(at: IndexPath(item: 99, section: 0)))
-        #expect(abs(collection.convert(last.frame, to: stack).maxX - (width - 16)) < 0.001)
+        let lastFrame = collection.convert(last.frame, to: stack)
+        let trailingInset = direction == .leftToRight ? width - lastFrame.maxX : lastFrame.minX
+        #expect(abs(trailingInset - 8) < 0.001)
 
         stack.snapshotReload()
         stack.layoutIfNeeded()

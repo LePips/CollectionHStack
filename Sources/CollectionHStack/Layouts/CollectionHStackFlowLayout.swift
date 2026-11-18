@@ -7,9 +7,34 @@ protocol CollectionHStackItemSizeProvider: AnyObject {
 }
 
 class CollectionHStackFlowLayout: UICollectionViewFlowLayout {
+    // Keep layout attributes, content offsets and snap targets in leading-origin coordinates.
+    override var flipsHorizontallyInOppositeLayoutDirection: Bool {
+        true
+    }
+
     /// The collection renders outside its logical viewport when clipping is disabled.
     /// Paging still uses the original viewport, excluding this extra rendering area.
     var renderingInsets: UIEdgeInsets = .zero
+
+    override func targetContentOffset(
+        forProposedContentOffset proposedContentOffset: CGPoint,
+        withScrollingVelocity velocity: CGPoint
+    ) -> CGPoint {
+        let offset = snappingContentOffset(forProposedContentOffset: proposedContentOffset, withScrollingVelocity: velocity)
+        #if os(tvOS)
+        // A snap must not undo the focus engine's attempt to reveal a partial column.
+        return (collectionView as? FocusCollectionView)?.contentOffset(revealingFocusedCellAt: offset) ?? offset
+        #else
+        return offset
+        #endif
+    }
+
+    func snappingContentOffset(
+        forProposedContentOffset proposedContentOffset: CGPoint,
+        withScrollingVelocity velocity: CGPoint
+    ) -> CGPoint {
+        super.targetContentOffset(forProposedContentOffset: proposedContentOffset, withScrollingVelocity: velocity)
+    }
 
     override func prepare() {
         // Uniform rows need one size per preparation, not a delegate call for

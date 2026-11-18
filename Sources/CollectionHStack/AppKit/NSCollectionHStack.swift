@@ -55,6 +55,7 @@ public final class NSCollectionHStack<
 
     private var scrollAnchor: CollectionScrollAnchor?
     private var anchorOffset: CGFloat?
+    private var leadingOffsetBeforeSnapshot: CGFloat?
     private var applyingLayout = false
     private var configuration: CollectionHStack<Element, Data, ID, Content>
     private var hasEvaluatedInitialElement = false
@@ -253,6 +254,15 @@ public final class NSCollectionHStack<
     }
 
     private func applySnapshot(count: Int) {
+        if collectionLayout.isRightToLeft {
+            // Appending carousel items grows the document on the left. Keep the
+            // same content visible when AppKit installs its new document width.
+            if count == 0 || itemCount == 0 {
+                leadingOffsetBeforeSnapshot = 0
+            } else if leadingOffsetBeforeSnapshot == nil {
+                leadingOffsetBeforeSnapshot = directionalOffset(scrollView.contentView.bounds.minX)
+            }
+        }
         updating = true
         scrollAnchor = nil
         anchorOffset = nil
@@ -295,6 +305,7 @@ public final class NSCollectionHStack<
 
     func updateEnvironment(_ environment: EnvironmentValues) {
         let signature = ContentMeasurementEnvironment(environment)
+        collectionLayout.isRightToLeft = signature.layoutDirection == .rightToLeft
         let measurementChanged = measurementEnvironment != signature
         measurementEnvironment = signature
         contentEnvironment = environment
@@ -429,8 +440,13 @@ public final class NSCollectionHStack<
         collectionLayout.prepare()
         collectionView.setFrameSize(collectionLayout.collectionViewContentSize)
         appliedWidth = width
-        if let anchor {
+        if let leadingOffsetBeforeSnapshot {
+            scrollToLeadingOffset(leadingOffsetBeforeSnapshot)
+            self.leadingOffsetBeforeSnapshot = nil
+        } else if let anchor {
             restoreScrollAnchor(anchor)
+        } else if collectionLayout.isRightToLeft {
+            scrollToLeadingOffset(0)
         }
 
         if intrinsicHeight != result.selfSize.height {
@@ -458,22 +474,24 @@ public final class NSCollectionHStack<
             return
         }
 
-        if viewport.minX <= 0.5 {
+        let logicalViewport = collectionLayout.directionalRect(viewport)
+        if logicalViewport.minX <= 0.5 {
             scrollAnchor = .leading
-        } else if viewport.minX >= maximumOffset - 0.5 {
+        } else if logicalViewport.minX >= maximumOffset - 0.5 {
             scrollAnchor = .trailing
         } else {
             let centered = configuration.scrollBehavior == .continuous || configuration.scrollBehavior == .fullPaging
-            let reference = viewport.minX + (centered ? viewport.width / 2 : collectionLayout.insets.left)
+            let reference = logicalViewport.minX + (centered ? viewport.width / 2 : collectionLayout.insets.left)
             let attributes = collectionLayout.layoutAttributesForElements(in: viewport)
-            let nearest = attributes.min {
-                let lhs = centered ? $0.frame.midX : $0.frame.minX
-                let rhs = centered ? $1.frame.midX : $1.frame.minX
-                return abs(lhs - reference) < abs(rhs - reference)
+            func distance(_ item: NSCollectionViewLayoutAttributes) -> CGFloat {
+                let frame = collectionLayout.directionalRect(item.frame)
+                return abs((centered ? frame.midX : frame.minX) - reference)
             }
+            let nearest = attributes.min { distance($0) < distance($1) }
             guard let nearest, let index = nearest.indexPath?.item, nearest.frame.width.isFiniteAndPositive else { return }
 
-            scrollAnchor = .item(index: index, fraction: (reference - nearest.frame.minX) / nearest.frame.width, centered: centered)
+            let frame = collectionLayout.directionalRect(nearest.frame)
+            scrollAnchor = .item(index: index, fraction: (reference - frame.minX) / frame.width, centered: centered)
         }
     }
 
@@ -494,9 +512,13 @@ public final class NSCollectionHStack<
             guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0)) else { return }
 
             let reference = centered ? scrollView.contentSize.width / 2 : collectionLayout.insets.left
-            offset = attributes.frame.minX + attributes.frame.width * fraction - reference
+            offset = collectionLayout.directionalRect(attributes.frame).minX + attributes.frame.width * fraction - reference
         }
-        scrollView.contentView.scroll(to: CGPoint(x: offset.clamped(to: 0 ... maximumOffset), y: 0))
+        scrollToLeadingOffset(offset)
+    }
+
+    private func scrollToLeadingOffset(_ offset: CGFloat) {
+        scrollView.contentView.scroll(to: CGPoint(x: directionalOffset(offset.clamped(to: 0 ... maximumOffset)), y: 0))
         scrollView.reflectScrolledClipView(scrollView.contentView)
     }
 
@@ -516,16 +538,22 @@ public final class NSCollectionHStack<
         layoutSubtreeIfNeeded()
         guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0)) else { return }
 
+        let frame = collectionLayout.directionalRect(attributes.frame)
         let target: CGFloat = switch configuration.scrollBehavior {
-        case .continuousLeadingEdge, .columnPaging: attributes.frame.minX - configuration.insets.leading
-        case .continuous, .fullPaging: attributes.frame.midX - scrollView.contentSize.width / 2
+        case .continuousLeadingEdge, .columnPaging: frame.minX - configuration.insets.leading
+        case .continuous, .fullPaging: frame.midX - scrollView.contentSize.width / 2
         }
 
-        scroll(to: target, animated: animated)
+        scroll(to: directionalOffset(target), animated: animated)
     }
 
     private var maximumOffset: CGFloat {
         max(0, collectionLayout.collectionViewContentSize.width - scrollView.contentSize.width)
+    }
+
+    /// Converts a viewport origin to or from its distance from the leading edge.
+    private func directionalOffset(_ offset: CGFloat) -> CGFloat {
+        collectionLayout.isRightToLeft ? maximumOffset - offset : offset
     }
 
     private func scroll(to offset: CGFloat, animated: Bool) {
@@ -599,6 +627,10 @@ public final class NSCollectionHStack<
 
     /// Paging advances at most one column/page per gesture. Continuous alignment can cross many columns.
     func settledOffset(proposed: CGFloat, gestureStart: CGFloat?) -> CGFloat {
+        directionalOffset(settledLeadingOffset(proposed: directionalOffset(proposed), gestureStart: gestureStart.map(directionalOffset)))
+    }
+
+    private func settledLeadingOffset(proposed: CGFloat, gestureStart: CGFloat?) -> CGFloat {
         let offset = proposed.clamped(to: 0 ... maximumOffset)
         guard configuration.scrollBehavior != .continuous else { return offset }
 
@@ -614,10 +646,12 @@ public final class NSCollectionHStack<
 
         let reference = configuration.scrollBehavior == .columnPaging ? (gestureStart ?? offset) : offset
         let rect = CGRect(x: reference - bounds.width, y: 0, width: bounds.width * 3, height: bounds.height)
-        let columns = collectionLayout.layoutAttributesForElements(in: rect).filter { ($0.indexPath?.item ?? 0) % rows == 0 }
-        let nearest = columns.min {
-            abs($0.frame.minX - reference - configuration.insets.leading) < abs($1.frame.minX - reference - configuration.insets.leading)
+        let columns = collectionLayout.layoutAttributesForElements(in: collectionLayout.directionalRect(rect))
+            .filter { ($0.indexPath?.item ?? 0) % rows == 0 }
+        func columnOffset(_ item: NSCollectionViewLayoutAttributes) -> CGFloat {
+            collectionLayout.directionalRect(item.frame).minX - configuration.insets.leading
         }
+        let nearest = columns.min { abs(columnOffset($0) - reference) < abs(columnOffset($1) - reference) }
 
         guard let nearest, let index = nearest.indexPath?.item else { return offset }
 
@@ -625,14 +659,14 @@ public final class NSCollectionHStack<
         if configuration.scrollBehavior == .columnPaging, gestureStart != nil {
             candidates = [index - rows, index, index + rows].compactMap {
                 collectionLayout.layoutAttributesForItem(at: IndexPath(item: $0, section: 0))
-                    .map { $0.frame.minX - configuration.insets.leading }
+                    .map(columnOffset)
             }
         } else {
             // Preserve the trailing edge when the final column cannot be leading-aligned.
             if offset >= maximumOffset - 1 {
                 return maximumOffset
             }
-            candidates = columns.map { $0.frame.minX - configuration.insets.leading }
+            candidates = columns.map(columnOffset)
         }
 
         let target = candidates.min { abs($0 - offset) < abs($1 - offset) } ?? offset
@@ -643,7 +677,7 @@ public final class NSCollectionHStack<
         guard !updating else { return }
 
         let visible = collectionView.indexPathsForVisibleItems().map(\.item).sorted()
-        let offset = scrollView.contentView.bounds.minX
+        let offset = directionalOffset(scrollView.contentView.bounds.minX)
 
         let leading: Bool = switch configuration.onReachedLeadingEdgeOffset {
         case let .offset(threshold): offset <= threshold
@@ -672,7 +706,7 @@ public final class NSCollectionHStack<
                     guard let attributes = collectionLayout.layoutAttributesForItem(at: IndexPath(item: index, section: 0))
                     else { continue }
 
-                    if abs(attributes.frame.minX - offset - configuration.insets.leading) <= tolerance {
+                    if abs(collectionLayout.directionalRect(attributes.frame).minX - offset - configuration.insets.leading) <= tolerance {
                         alignedID = itemID(at: index).id
                         break
                     }

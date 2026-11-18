@@ -12,7 +12,7 @@ class ContinuousLeadingEdgeFlowLayout: CollectionHStackFlowLayout, ColumnAligned
 
     var rows: Int = 1
 
-    override func targetContentOffset(
+    override func snappingContentOffset(
         forProposedContentOffset proposedContentOffset: CGPoint,
         withScrollingVelocity velocity: CGPoint
     ) -> CGPoint {

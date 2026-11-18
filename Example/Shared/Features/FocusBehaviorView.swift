@@ -64,7 +64,7 @@ struct FocusBehaviorView: View {
         returning: CollectionHStackFocusBehavior.Returning
     ) -> some View {
         ExampleSection(title) {
-            CollectionHStack(count: 20, columns: 4) { index in
+            CollectionHStack(count: 20, columns: ProcessInfo.processInfo.arguments.contains("--fractional-columns") ? 3.5 : 4) { index in
                 Button {
                     selection = "\(title): item \(index + 1)"
                 } label: {

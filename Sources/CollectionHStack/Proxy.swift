@@ -1,7 +1,6 @@
 import Foundation
-import SwiftUI
 
-public class CollectionHStackProxy: ObservableObject {
+public class CollectionHStackProxy {
 
     #if os(macOS)
     weak var collectionView: _NSCollectionHStack?
@@ -35,7 +34,6 @@ public class CollectionHStackProxy: ObservableObject {
     /// its resize proportions from the new measurement; no sizing values are required.
     @MainActor
     public func redraw() {
-        objectWillChange.send()
         collectionView?.snapshotReload()
     }
 }

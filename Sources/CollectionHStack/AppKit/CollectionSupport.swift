@@ -65,6 +65,7 @@ final class HostingCollectionViewItem<Content: View>: NSCollectionViewItem {
 /// Uniform layouts compute only attributes intersecting the viewport, regardless of data count.
 /// Variadic horizontal layouts cache column offsets and use binary search when scrolling.
 final class CollectionLayout: NSCollectionViewLayout {
+    var isRightToLeft = false
     var horizontal = false
     var lanes = 1
     var itemSize = CGSize.zero
@@ -117,6 +118,13 @@ final class CollectionLayout: NSCollectionViewLayout {
         return CGSize(width: viewport.width, height: max(viewport.height, height))
     }
 
+    /// Converts between AppKit document coordinates and distances from the leading edge.
+    func directionalRect(_ rect: CGRect) -> CGRect {
+        guard isRightToLeft else { return rect }
+
+        return CGRect(x: collectionViewContentSize.width - rect.maxX, y: rect.minY, width: rect.width, height: rect.height)
+    }
+
     override func layoutAttributesForItem(at indexPath: IndexPath) -> NSCollectionViewLayoutAttributes? {
         guard indexPath.item >= 0, indexPath.item < count else { return nil }
 
@@ -133,15 +141,16 @@ final class CollectionLayout: NSCollectionViewLayout {
             x = insets.left + CGFloat(lane) * (itemSize.width + itemSpacing)
             y = insets.top + CGFloat(group) * (itemSize.height + lineSpacing)
         }
-        attributes.frame = CGRect(origin: CGPoint(x: x, y: y), size: size)
+        attributes.frame = directionalRect(CGRect(origin: CGPoint(x: x, y: y), size: size))
         return attributes
     }
 
     override func layoutAttributesForElements(in rect: NSRect) -> [NSCollectionViewLayoutAttributes] {
         guard groups > 0 else { return [] }
 
-        let lower = horizontal ? rect.minX : rect.minY
-        let upper = horizontal ? rect.maxX : rect.maxY
+        let query = directionalRect(rect)
+        let lower = horizontal ? query.minX : query.minY
+        let upper = horizontal ? query.maxX : query.maxY
         let inset = horizontal ? insets.left : insets.top
         let stride = horizontal ? itemSize.width + itemSpacing : itemSize.height + lineSpacing
         let first: Int

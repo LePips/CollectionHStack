@@ -16,8 +16,8 @@ struct LayoutView: View {
     @State
     var columnFraction: CGFloat = 0.5
 
-    @StateObject
-    var proxy: CollectionHStackProxy = .init()
+    @State
+    private var proxy: CollectionHStackProxy = .init()
 
     var columnCount: Int {
         if !usesCompactExampleLayout {

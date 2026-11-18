@@ -40,7 +40,7 @@ struct PlaygroundView: View {
     @State
     private var initialElementID: Int? = 40
 
-    @StateObject
+    @State
     private var proxy = CollectionHStackProxy()
 
     var body: some View {

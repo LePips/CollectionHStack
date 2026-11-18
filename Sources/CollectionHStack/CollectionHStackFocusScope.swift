@@ -15,7 +15,10 @@ public struct CollectionHStackFocusScope<Content: View>: UIViewControllerReprese
     }
 
     public func makeUIViewController(context: Context) -> UIHostingController<AnyView> {
-        let controller = CollectionFocusScopeController(rootView: AnyView(content.environment(\.self, context.environment)))
+        // SwiftUI supplies the environment through the representable's hosting
+        // boundary. Copying it wholesale also copies the parent's accessibility
+        // state, which hides controls when another scope encloses navigation.
+        let controller = CollectionFocusScopeController(rootView: AnyView(content))
         // The surrounding SwiftUI layout has already accounted for safe areas.
         controller.safeAreaRegions = []
         controller.view.backgroundColor = nil
@@ -23,7 +26,7 @@ public struct CollectionHStackFocusScope<Content: View>: UIViewControllerReprese
     }
 
     public func updateUIViewController(_ controller: UIHostingController<AnyView>, context: Context) {
-        controller.rootView = AnyView(content.environment(\.self, context.environment))
+        controller.rootView = AnyView(content)
     }
 
     public func sizeThatFits(

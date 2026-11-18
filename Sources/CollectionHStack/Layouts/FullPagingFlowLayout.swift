@@ -8,7 +8,7 @@ class FullPagingFlowLayout: CollectionHStackFlowLayout {
     private var pageIndex: Int = 0
 
     var pageSize: CGFloat {
-        viewportBounds(at: .zero).width - (sectionInset.left - renderingInsets.left) * 2 + minimumInteritemSpacing
+        (collectionView?.bounds.width ?? 0) - sectionInset.left - sectionInset.right + minimumInteritemSpacing
     }
 
     /// Seeds paging after the collection is initially positioned away from page zero.
@@ -21,7 +21,7 @@ class FullPagingFlowLayout: CollectionHStackFlowLayout {
         pageIndex = Int(isAtLast ? ceil(maximum / pageSize) : (offset / pageSize).rounded())
     }
 
-    override func targetContentOffset(
+    override func snappingContentOffset(
         forProposedContentOffset proposedContentOffset: CGPoint,
         withScrollingVelocity velocity: CGPoint
     ) -> CGPoint {

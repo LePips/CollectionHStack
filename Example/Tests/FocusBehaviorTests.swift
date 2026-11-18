@@ -6,22 +6,91 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct FocusBehaviorTests {
-    @Test
-    func `scope preserves the swift UI environment`() async throws {
-        var observedLocale: String?
-        let controller = UIHostingController(rootView:
+    @Test(arguments: 0 ..< 4, [false, true])
+    func `fractional columns fully reveal the focused cell`(behaviorIndex: Int, clipped: Bool) async throws {
+        let behavior: CollectionHStackScrollBehavior = [.continuous, .continuousLeadingEdge, .columnPaging, .fullPaging][behaviorIndex]
+        let harness = FocusHarness(columns: 3.5, clipped: clipped, scrollBehavior: behavior)
+        defer { harness.close() }
+        try await harness.start()
+        harness.layout()
+        #expect(clipped
+            ? harness.collection.bounds.width == harness.view.bounds.width
+            : harness.collection.bounds.width > harness.view.bounds.width)
+        let indices = Array(2 ... 5)
+        for index in indices {
+            try await harness.focusItem(index)
+            try await Task.sleep(for: .milliseconds(300))
+            #expect(harness.focusedIndex == index)
+            let attributes = try #require(harness.collection.layoutAttributesForItem(at: IndexPath(item: index, section: 0)))
+            let frame = harness.collection.convert(attributes.frame, to: harness.view)
+            #expect(frame.minX >= -0.5, "Item \(index) starts outside the viewport: \(frame)")
+            #expect(frame.maxX <= harness.view.bounds.width + 0.5, "Item \(index) ends outside the viewport: \(frame)")
+        }
+        #expect(harness.focusEvents == indices)
+    }
+
+    @Test(arguments: [1, 2])
+    func `fractional focus reaches the last column without overscrolling`(rows: Int) async throws {
+        let harness = FocusHarness(columns: 3.5, rows: rows)
+        defer { harness.close() }
+        try await harness.start()
+        harness.layout()
+        let indices = Array(stride(from: rows - 1, to: 20, by: rows))
+        for index in indices {
+            try await harness.focusItem(index)
+            try await Task.sleep(for: .milliseconds(200))
+            #expect(harness.focusedIndex == index)
+            let attributes = try #require(harness.collection.layoutAttributesForItem(at: IndexPath(item: index, section: 0)))
+            let frame = harness.collection.convert(attributes.frame, to: harness.view)
+            #expect(frame.minX >= 39.5)
+            #expect(frame.maxX <= harness.view.bounds.width - 39.5)
+            #expect(harness.collection.contentOffset.x >= -0.5)
+            #expect(harness.collection.contentOffset.x <= harness.collection.contentSize.width - harness.collection.bounds.width + 0.5)
+        }
+        let maximum = harness.collection.contentSize.width - harness.collection.bounds.width
+        #expect(abs(harness.collection.contentOffset.x - maximum) < 0.5)
+    }
+
+    @Test(arguments: [CGFloat(3.5), 4])
+    func `focus on fully visible cells does not scroll`(columns: CGFloat) async throws {
+        let harness = FocusHarness(columns: columns)
+        defer { harness.close() }
+        try await harness.start()
+        harness.layout()
+        let offset = harness.collection.contentOffset
+        for index in [0, 1, 2, 1, 0] {
+            try await harness.focusItem(index)
+            #expect(harness.focusedIndex == index)
+            #expect(harness.collection.contentOffset == offset)
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func `scope preserves the swift UI environment`(nested: Bool) async throws {
+        var observed: [String] = []
+        let probe = ScopeEnvironmentProbe { observed = $0 }
+        func root(locale: String, marker: String) -> some View {
             CollectionHStackFocusScope {
-                ScopeEnvironmentProbe { observedLocale = $0 }
+                if nested {
+                    CollectionHStackFocusScope { probe }
+                } else {
+                    probe
+                }
             }
-            .environment(\.locale, Locale(identifier: "fr_CA"))
-        )
+            .environment(\.locale, Locale(identifier: locale))
+            .environment(\.scopeEnvironmentMarker, marker)
+        }
+        let controller = UIHostingController(rootView: root(locale: "fr_CA", marker: "initial"))
         let window = UIWindow()
         window.windowScene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
         window.rootViewController = controller
         window.makeKeyAndVisible()
         defer { window.isHidden = true }
         try await Task.sleep(for: .milliseconds(200))
-        #expect(observedLocale == "fr_CA")
+        #expect(observed == ["fr_CA", "initial"])
+        controller.rootView = root(locale: "de_DE", marker: "updated")
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(observed == ["de_DE", "updated"])
     }
 
     @Test
@@ -147,10 +216,13 @@ struct FocusBehaviorTests {
         #expect(harness.focusEvents == [1])
     }
 
-    @Test
-    func `leading uses initial scroll position and top row`() async throws {
+    @Test(arguments: [LayoutDirection.leftToRight, .rightToLeft])
+    func `leading uses initial scroll position and top row`(direction: LayoutDirection) async throws {
         let harness = FocusHarness(initial: .leading, rows: 2, initialID: 8)
         defer { harness.close() }
+        var environment = EnvironmentValues()
+        environment.layoutDirection = direction
+        harness.view.updateEnvironment(environment)
         try await harness.start()
         try await harness.enterCollection()
         #expect(harness.focusedIndex == 8)
@@ -201,18 +273,22 @@ private final class FocusHarness {
     init(
         initial: CollectionHStackFocusBehavior.Initial = .automatic,
         returning: CollectionHStackFocusBehavior.Returning = .automatic,
+        columns: CGFloat = 4,
+        clipped: Bool = false,
+        scrollBehavior: CollectionHStackScrollBehavior = .continuousLeadingEdge,
         rows: Int = 1,
         initialID: Int? = nil,
         data: [Int] = Array(0 ..< 20),
         disabledIDs: Set<Int> = [],
         carousel: Bool = false
     ) {
-        var configuration = Configuration(uniqueElements: data, id: \.self, columns: 4, rows: rows) { id in
+        var configuration = Configuration(uniqueElements: data, id: \.self, columns: columns, rows: rows) { id in
             FocusTestCard(id: id, disabled: disabledIDs.contains(id))
         }
         .insets(horizontal: 40)
         .itemSpacing(20)
-        .scrollBehavior(.continuousLeadingEdge)
+        .clipsToBounds(clipped)
+        .scrollBehavior(scrollBehavior)
         .contentInsetAdjustmentBehavior(.never)
         .initialElement(id: initialID)
         .focusBehavior(initial: initial, returning: returning)
@@ -349,11 +425,24 @@ private struct FocusTestCard: View {
 private struct ScopeEnvironmentProbe: View {
     @Environment(\.locale)
     private var locale
-    let observed: (String) -> Void
+    @Environment(\.scopeEnvironmentMarker)
+    private var marker
+    let observed: ([String]) -> Void
 
     var body: some View {
         Text("Environment probe")
-            .onAppear { observed(locale.identifier) }
+            .onChange(of: [locale.identifier, marker], initial: true) { _, values in observed(values) }
+    }
+}
+
+private struct ScopeEnvironmentMarkerKey: EnvironmentKey {
+    static let defaultValue = "missing"
+}
+
+private extension EnvironmentValues {
+    var scopeEnvironmentMarker: String {
+        get { self[ScopeEnvironmentMarkerKey.self] }
+        set { self[ScopeEnvironmentMarkerKey.self] = newValue }
     }
 }
 #endif

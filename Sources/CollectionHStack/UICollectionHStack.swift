@@ -448,7 +448,7 @@ public class UICollectionHStack<
         itemSize = newItemSize
         size = newSelfSize
         renderingInsets = newRenderingInsets
-        (collectionView.flowLayout as? CollectionHStackFlowLayout)?.renderingInsets = renderingInsets
+        (collectionView.flowLayout as? CollectionHStackFlowLayout)?.renderingInsets = layoutRenderingInsets
         if collectionView.flowLayout.sectionInset != collectionSectionInsets {
             collectionView.flowLayout.sectionInset = collectionSectionInsets
         }
@@ -571,12 +571,20 @@ public class UICollectionHStack<
         collectionView.contentOffset.x = offset
     }
 
+    // The expanded frame is in the wrapper's physical coordinates. Inside a
+    // flipped collection, x increases from leading to trailing in either language.
+    private var layoutRenderingInsets: UIEdgeInsets {
+        guard collectionView.effectiveUserInterfaceLayoutDirection == .rightToLeft else { return renderingInsets }
+
+        return .init(top: 0, left: renderingInsets.right, bottom: 0, right: renderingInsets.left)
+    }
+
     private var collectionSectionInsets: UIEdgeInsets {
         .init(
             top: insets.top,
-            left: insets.leading + renderingInsets.left,
+            left: insets.leading + layoutRenderingInsets.left,
             bottom: insets.bottom,
-            right: insets.trailing + renderingInsets.right
+            right: insets.trailing + layoutRenderingInsets.right
         )
     }
 
@@ -614,6 +622,10 @@ public class UICollectionHStack<
 
     func updateEnvironment(_ environment: EnvironmentValues) {
         let signature = ContentMeasurementEnvironment(environment)
+        if measurementEnvironment?.layoutDirection != signature.layoutDirection {
+            collectionView.semanticContentAttribute = signature.layoutDirection == .rightToLeft ? .forceRightToLeft : .forceLeftToRight
+            collectionView.collectionViewLayout.invalidateLayout()
+        }
         let measurementChanged = measurementEnvironment != signature
         measurementEnvironment = signature
         contentEnvironment = environment
@@ -715,7 +727,7 @@ public class UICollectionHStack<
                 collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: animated)
             } else if let attributes = collectionView.collectionViewLayout.layoutAttributesForItem(at: indexPath) {
                 let maximum = max(0, collectionView.contentSize.width - collectionView.bounds.width)
-                let offset = (attributes.center.x - renderingInsets.left - bounds.width / 2).clamped(to: 0 ... maximum)
+                let offset = (attributes.center.x - layoutRenderingInsets.left - bounds.width / 2).clamped(to: 0 ... maximum)
                 collectionView.setContentOffset(CGPoint(x: offset, y: 0), animated: animated)
             }
         }
@@ -1131,6 +1143,11 @@ public class UICollectionHStack<
     }
 
     // MARK: UIScrollViewDelegate
+
+    public func scrollViewDidChangeAdjustedContentInset(_ scrollView: UIScrollView) {
+        // A resize can change the adjusted insets after the flow layout prepared its item height.
+        (scrollView as? UICollectionView)?.collectionViewLayout.invalidateLayout()
+    }
 
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
 

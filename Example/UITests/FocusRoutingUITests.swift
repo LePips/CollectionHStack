@@ -2,6 +2,46 @@ import XCTest
 
 @MainActor
 final class FocusRoutingUITests: XCTestCase {
+    func testFractionalColumnsRevealFocusedCardsInBothDirections() {
+        checkFractionalColumns(rightToLeft: false)
+    }
+
+    func testFractionalColumnsRevealFocusedCardsInRTL() {
+        checkFractionalColumns(rightToLeft: true)
+    }
+
+    private func checkFractionalColumns(rightToLeft: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--focus-demo", "--focus-probe", "--fractional-columns"]
+        if rightToLeft {
+            app.launchArguments += ["-AppleTextDirection", "YES", "-NSForceRightToLeftWritingDirection", "YES"]
+        }
+        app.launch()
+        let remote = XCUIRemote.shared
+        expectFocus(app.buttons["anchor-1"])
+        remote.press(.down)
+        let collection = app.collectionViews.firstMatch
+        let forward: XCUIRemote.Button = rightToLeft ? .left : .right
+        let backward: XCUIRemote.Button = rightToLeft ? .right : .left
+        let indices = Array(0 ... 7) + Array((0 ..< 7).reversed())
+        for (step, index) in indices.enumerated() {
+            if step > 0 {
+                remote.press(step <= 7 ? forward : backward)
+            }
+            let card = app.buttons["row0-item\(index)"]
+            expectFocus(card)
+            let visible = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                let viewport = collection.frame
+                let frame = card.frame
+                return frame.width > 0 && frame.minX >= viewport.minX - 0.5 && frame.maxX <= viewport.maxX + 0.5
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 5), .completed, "Item \(index) should be fully visible")
+        }
+        expectEvents(app, indices.map { "row0-item\($0)" })
+        remote.press(.select)
+        XCTAssertEqual(app.staticTexts["selection-status"].label, "Leading first · Remember on return: item 1")
+    }
+
     func testNestedScopeRoutesOnlyOnce() {
         let app = XCUIApplication()
         app.launchArguments = ["--focus-demo", "--focus-probe", "--nested-focus-scope"]
@@ -12,6 +52,9 @@ final class FocusRoutingUITests: XCTestCase {
         XCUIRemote.shared.press(.down)
         expectFocus(app.buttons["row0-item0"])
         expectEvents(app, ["row0-item0"])
+        XCUIRemote.shared.press(.select)
+        XCTAssertEqual(app.staticTexts["selection-status"].label, "Leading first · Remember on return: item 1")
+        expectFocus(app.buttons["row0-item0"])
         XCUIRemote.shared.press(.up)
         expectFocus(app.buttons["anchor-1"])
     }
