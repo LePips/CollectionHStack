@@ -12,7 +12,7 @@ final class FocusRoutingUITests: XCTestCase {
 
     private func checkFractionalColumns(rightToLeft: Bool) {
         let app = XCUIApplication()
-        app.launchArguments = ["--focus-demo", "--focus-probe", "--fractional-columns"]
+        app.launchArguments = ["--focus-demo", "--focus-probe"]
         if rightToLeft {
             app.launchArguments += ["-AppleTextDirection", "YES", "-NSForceRightToLeftWritingDirection", "YES"]
         }
