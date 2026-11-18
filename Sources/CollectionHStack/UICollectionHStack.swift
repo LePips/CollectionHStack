@@ -69,6 +69,7 @@ public class UICollectionHStack<
     private var scrollBehavior: CollectionHStackScrollBehavior
     private var initialElementID: ID?
     private var hasEvaluatedInitialElement = false
+    private var hasAlignedRightToLeftStart = false
     private var pendingInitialElementID: ID?
     private var fittingSizeCache: (width: CGFloat, selfSize: CGSize, itemSize: CGSize)?
     private var resizeTransition = CollectionResizeTransition()
@@ -257,6 +258,7 @@ public class UICollectionHStack<
         refreshContentIfSettled()
         applyInitialElementIfNeeded()
         scheduleAlignedLeadingElementIDUpdate()
+        alignRightToLeftContent()
     }
 
     override public func didMoveToWindow() {
@@ -490,6 +492,31 @@ public class UICollectionHStack<
         }
     }
 
+    // MARK: right-to-left
+
+    /// UIKit mirrors a flow layout only within its content width, so in right-to-left
+    /// layouts a row narrower than the viewport hugs the left edge, and a wider row
+    /// opens scrolled to its end. Pad the left side and open at the right end so the
+    /// first item rests against the right edge.
+    private var isRightToLeft: Bool {
+        collectionView.effectiveUserInterfaceLayoutDirection == .rightToLeft
+    }
+
+    private func alignRightToLeftContent() {
+        guard isRightToLeft, collectionView.bounds.width.isFiniteAndPositive else { return }
+
+        let contentWidth = collectionView.collectionViewLayout.collectionViewContentSize.width
+        let gap = max(0, collectionView.bounds.width - contentWidth)
+        if collectionView.contentInset.left != gap {
+            collectionView.contentInset.left = gap
+        }
+        // A requested initial element decides the starting position instead.
+        guard !hasAlignedRightToLeftStart, initialElementID == nil, contentWidth > 0 else { return }
+
+        hasAlignedRightToLeftStart = true
+        collectionView.contentOffset.x = scrollRange.upperBound
+    }
+
     // MARK: scroll anchoring
 
     /// Content offsets the collection can rest at, including adjusted content insets.
@@ -512,10 +539,10 @@ public class UICollectionHStack<
         let offset = collectionView.contentOffset.x
         let range = scrollRange
         if offset <= range.lowerBound + 0.5 {
-            return .leading
+            return isRightToLeft ? .trailing : .leading
         }
         if offset >= range.upperBound - 0.5 {
-            return .trailing
+            return isRightToLeft ? .leading : .trailing
         }
         if let paging = flowLayout as? FullPagingFlowLayout {
             return paging.pageSize.isFiniteAndPositive ? .page((offset / paging.pageSize).rounded()) : nil
@@ -544,11 +571,11 @@ public class UICollectionHStack<
         let target: CGFloat
         switch anchor {
         case .leading:
-            target = scrollRange.lowerBound
+            target = isRightToLeft ? scrollRange.upperBound : scrollRange.lowerBound
 
         case .trailing:
             _ = collectionView.layoutAttributesForItem(at: IndexPath(item: effectiveItemCount - 1, section: 0))
-            target = .greatestFiniteMagnitude
+            target = isRightToLeft ? -.greatestFiniteMagnitude : .greatestFiniteMagnitude
 
         case let .page(page):
             guard let paging = flowLayout as? FullPagingFlowLayout else { return }
